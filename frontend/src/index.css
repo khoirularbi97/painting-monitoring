@@ -1,0 +1,187 @@
+:root {
+  --bg-page: #f3f4f2;
+  --bg-surface: #ffffff;
+  --bg-sidebar: #1b2430;
+  --ink-primary: #1a2027;
+  --ink-secondary: #5b6572;
+  --ink-muted: #8a919b;
+  --border: #dfe2e5;
+  --accent: #2f6690;
+  --accent-dark: #1f4a6b;
+  --ok: #2e7d46;
+  --ok-bg: #e5f3e9;
+  --comp: #c77f0b;
+  --comp-bg: #fbf0dc;
+  --ng: #b23a2e;
+  --ng-bg: #fbe8e5;
+  --radius: 8px;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-sidebar);
+  color: #cfd6de;
+  padding: 20px 0;
+}
+
+.sidebar-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  padding: 0 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 8px;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 10px 20px;
+  color: #aeb7c1;
+  text-decoration: none;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-link.active {
+  color: #ffffff;
+  background: rgba(255,255,255,0.06);
+  border-left-color: var(--accent);
+}
+
+.sidebar-link:hover { color: #ffffff; }
+
+.main {
+  flex: 1;
+  padding: 28px 32px;
+  max-width: 1100px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  margin: 0 0 24px;
+}
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-secondary);
+  margin-bottom: 5px;
+}
+.field input, .field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font-mono);
+  background: #fff;
+  color: var(--ink-primary);
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47,102,144,0.12);
+}
+
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn:hover { background: var(--accent-dark); }
+.btn:disabled { background: var(--ink-muted); cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink-primary);
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.alert-error {
+  background: var(--ng-bg);
+  color: var(--ng);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.alert-success {
+  background: var(--ok-bg);
+  color: var(--ok);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.metric {
+  background: #fafbfa;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.metric-label { font-size: 12px; color: var(--ink-secondary); margin: 0 0 4px; }
+.metric-value { font-size: 24px; font-weight: 600; margin: 0; font-family: var(--font-mono); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { color: var(--ink-secondary); font-weight: 500; font-size: 12px; }
+td.num { font-family: var(--font-mono); text-align: right; }
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.pill-ok { background: var(--ok-bg); color: var(--ok); }
+.pill-comp { background: var(--comp-bg); color: var(--comp); }
+.pill-ng { background: var(--ng-bg); color: var(--ng); }
