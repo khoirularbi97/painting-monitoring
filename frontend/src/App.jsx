@@ -7,9 +7,9 @@ import InputRepair from "./pages/InputRepair.jsx";
 export default function App() {
   return (
     <HashRouter>
-      <div style={{ background: "#fff3cd", padding: 10, fontSize: 12, fontFamily: "monospace" }}>
+      {/* <div style={{ background: "#fff3cd", padding: 10, fontSize: 12, fontFamily: "monospace" }}>
         DEBUG VITE_API_URL = "{String(import.meta.env.VITE_API_URL)}"
-      </div>
+      </div> */}
       <div className="app-shell">
         <Sidebar />
         <div className="main">
