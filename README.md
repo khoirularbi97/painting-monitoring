@@ -14,7 +14,7 @@ cd backend
 npm install
 cp .env.example .env   # sesuaikan DATABASE_URL
 npm run migrate         # jalankan migrations/001_init.sql
-npm run dev              # server di http://localhost:4000
+npm run dev              # server di http://localhost:4000(URL https://painting-monitoring.onrender.com)
 ```
 
 ## Menjalankan frontend
