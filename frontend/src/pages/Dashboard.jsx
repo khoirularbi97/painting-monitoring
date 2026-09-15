@@ -10,7 +10,9 @@ export default function Dashboard() {
   const [customers, setCustomers] = useState([]);
   const [filters, setFilters] = useState({ line_id: "", shift_id: "", customer_id: "" });
   const [data, setData] = useState([]);
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingRows, setLoadingRows] = useState(false);
 
   useEffect(() => {
     api.get("/master/line").then((r) => setLines(r.data));
@@ -19,15 +21,20 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     const params = {};
     if (filters.line_id) params.line_id = filters.line_id;
     if (filters.shift_id) params.shift_id = filters.shift_id;
     if (filters.customer_id) params.customer_id = filters.customer_id;
 
+    setLoading(true);
     api.get("/dashboard/tren-ok", { params })
       .then((r) => setData(r.data))
       .finally(() => setLoading(false));
+
+    setLoadingRows(true);
+    api.get("/produksi", { params })
+      .then((r) => setRows(r.data))
+      .finally(() => setLoadingRows(false));
   }, [filters]);
 
   const totalPart = data.reduce((s, d) => s + d.total_part, 0);
@@ -100,6 +107,50 @@ export default function Dashboard() {
               <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#185FA5" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Detail data</p>
+        {loadingRows ? (
+          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
+        ) : rows.length === 0 ? (
+          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data untuk filter ini.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Line</th>
+                  <th>Shift</th>
+                  <th>Customer</th>
+                  <th style={{ textAlign: "right" }}>Part</th>
+                  <th style={{ textAlign: "right" }}>OK final</th>
+                  <th style={{ textAlign: "right" }}>Comp</th>
+                  <th style={{ textAlign: "right" }}>NG final</th>
+                  <th style={{ textAlign: "right" }}>%OK final</th>
+                  <th style={{ textAlign: "right" }}>Eff. hanger</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.produksi_id}>
+                    <td>{r.tanggal}</td>
+                    <td>{r.nama_line}</td>
+                    <td>{r.nama_shift}</td>
+                    <td>{r.nama_customer}</td>
+                    <td className="num">{r.total_part}</td>
+                    <td className="num"><span className="pill pill-ok">{r.total_ok_final}</span></td>
+                    <td className="num"><span className="pill pill-comp">{r.total_comp}</span></td>
+                    <td className="num"><span className="pill pill-ng">{r.total_ng_final}</span></td>
+                    <td className="num">{r.persen_ok_final}%</td>
+                    <td className="num">{r.efisiensi_hanger}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
