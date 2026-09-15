@@ -3,6 +3,7 @@ import Sidebar from "./components/Sidebar.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import InputProduksi from "./pages/InputProduksi.jsx";
 import InputRepair from "./pages/InputRepair.jsx";
+import KelolaData from "./pages/KelolaData.jsx";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/input-produksi" element={<InputProduksi />} />
             <Route path="/input-repair" element={<InputRepair />} />
+            <Route path="/kelola-data" element={<KelolaData />} />
           </Routes>
         </div>
       </div>

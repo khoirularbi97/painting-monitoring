@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { query } from "../db.js";
+import { query, pool } from "../db.js";
 
 const router = Router();
 
@@ -126,6 +126,29 @@ router.get("/menunggu-repair", async (req, res) => {
     ORDER BY p.tanggal DESC
   `);
   res.json(result.rows);
+});
+
+// DELETE /api/produksi/:id — hapus produksi beserta data repair terkait
+router.delete("/:id", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM hasil_repair WHERE produksi_id = $1", [req.params.id]);
+    const result = await client.query(
+      "DELETE FROM produksi_painting WHERE id = $1 RETURNING id",
+      [req.params.id]
+    );
+    await client.query("COMMIT");
+
+    if (!result.rows.length) return res.status(404).json({ errors: ["Data tidak ditemukan."] });
+    res.json({ deleted: true, id: result.rows[0].id });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ errors: ["Gagal menghapus data."] });
+  } finally {
+    client.release();
+  }
 });
 
 export default router;
