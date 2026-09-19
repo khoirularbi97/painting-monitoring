@@ -23,7 +23,7 @@ export default function Dashboard() {
   const [lines, setLines] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [filters, setFilters] = useState({ line_id: "", shift_id: "", customer_id: "" });
+  const [filters, setFilters] = useState({ line_id: "", shift_id: "", customer_id: "", start: "", end: "" });
   const [data, setData] = useState([]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,8 @@ export default function Dashboard() {
     if (filters.line_id) params.line_id = filters.line_id;
     if (filters.shift_id) params.shift_id = filters.shift_id;
     if (filters.customer_id) params.customer_id = filters.customer_id;
+    if (filters.start) params.start = filters.start;
+    if (filters.end) params.end = filters.end;
 
     setLoading(true);
     api.get("/dashboard/tren-ok", { params })
@@ -83,12 +85,22 @@ export default function Dashboard() {
               {shifts.map((s) => <option key={s.id} value={s.id}>{s.nama_shift}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0, gridColumn: "span 2" }}>
+          <div className="field" style={{ marginBottom: 0 }}>
             <label>Customer</label>
             <select value={filters.customer_id} onChange={(e) => setFilters({ ...filters, customer_id: e.target.value })}>
               <option value="">Semua</option>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
             </select>
+          </div>
+          <div className="field" style={{ marginBottom: 0, display: "flex", gap: 6 }}>
+            <div style={{ flex: 1 }}>
+              <label>Dari tanggal</label>
+              <input type="date" value={filters.start} onChange={(e) => setFilters({ ...filters, start: e.target.value })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Sampai</label>
+              <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
+            </div>
           </div>
         </div>
       </div>

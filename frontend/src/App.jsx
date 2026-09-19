@@ -4,13 +4,11 @@ import Dashboard from "./pages/Dashboard.jsx";
 import InputProduksi from "./pages/InputProduksi.jsx";
 import InputRepair from "./pages/InputRepair.jsx";
 import KelolaData from "./pages/KelolaData.jsx";
+import KelolaMaster from "./pages/KelolaMaster.jsx";
 
 export default function App() {
   return (
     <HashRouter>
-      {/* <div style={{ background: "#fff3cd", padding: 10, fontSize: 12, fontFamily: "monospace" }}>
-        DEBUG VITE_API_URL = "{String(import.meta.env.VITE_API_URL)}"
-      </div> */}
       <div className="app-shell">
         <Sidebar />
         <div className="main">
@@ -19,6 +17,7 @@ export default function App() {
             <Route path="/input-produksi" element={<InputProduksi />} />
             <Route path="/input-repair" element={<InputRepair />} />
             <Route path="/kelola-data" element={<KelolaData />} />
+            <Route path="/kelola-master" element={<KelolaMaster />} />
           </Routes>
         </div>
       </div>

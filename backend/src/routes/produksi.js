@@ -61,16 +61,16 @@ router.post("/", async (req, res) => {
   const {
     tanggal, line_id, shift_id, customer_id,
     total_part, total_ok, total_comp, total_ng, total_hanger,
-    input_by,
+    input_by, leader_id,
   } = req.body;
 
   try {
     const result = await query(
       `INSERT INTO produksi_painting
-        (tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        (tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by, leader_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
-      [tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by || null]
+      [tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by || null, leader_id || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -91,17 +91,17 @@ router.put("/:id", async (req, res) => {
 
   const {
     tanggal, line_id, shift_id, customer_id,
-    total_part, total_ok, total_comp, total_ng, total_hanger,
+    total_part, total_ok, total_comp, total_ng, total_hanger, leader_id,
   } = req.body;
 
   const result = await query(
     `UPDATE produksi_painting SET
       tanggal=$1, line_id=$2, shift_id=$3, customer_id=$4,
       total_part=$5, total_ok=$6, total_comp=$7, total_ng=$8, total_hanger=$9,
-      updated_at=NOW()
-     WHERE id=$10
+      leader_id=$10, updated_at=NOW()
+     WHERE id=$11
      RETURNING *`,
-    [tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, req.params.id]
+    [tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, leader_id || null, req.params.id]
   );
 
   if (!result.rows.length) return res.status(404).json({ errors: ["Data tidak ditemukan."] });

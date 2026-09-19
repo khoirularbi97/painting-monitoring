@@ -12,7 +12,7 @@ const emptyForm = {
   line_id: "",
   shift_id: "",
   customer_id: "",
-  leader: "",
+  leader_id: "",
   total_part: "",
   total_ok: "",
   total_comp: "",
@@ -24,6 +24,7 @@ export default function InputProduksi() {
   const [lines, setLines] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [leaders, setLeaders] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState([]);
   const [success, setSuccess] = useState(false);
@@ -33,6 +34,7 @@ export default function InputProduksi() {
     api.get("/master/line").then((r) => { setLines(r.data); setForm((f) => ({ ...f, line_id: r.data[0]?.id || "" })); });
     api.get("/master/shift").then((r) => { setShifts(r.data); setForm((f) => ({ ...f, shift_id: r.data[0]?.id || "" })); });
     api.get("/master/customer").then((r) => { setCustomers(r.data); setForm((f) => ({ ...f, customer_id: r.data[0]?.id || "" })); });
+    api.get("/master/leader").then((r) => setLeaders(r.data));
   }, []);
 
   const sisa = Number(form.total_ok || 0) + Number(form.total_comp || 0) + Number(form.total_ng || 0);
@@ -106,7 +108,10 @@ export default function InputProduksi() {
 
           <div className="field">
             <label>Leader</label>
-            <input type="text" placeholder="Nama leader shift" value={form.leader} onChange={(e) => update("leader", e.target.value)} />
+            <select value={form.leader_id} onChange={(e) => update("leader_id", e.target.value)}>
+              <option value="">- Pilih leader -</option>
+              {leaders.map((l) => <option key={l.id} value={l.id}>{l.nama_leader}</option>)}
+            </select>
           </div>
 
           <div className="grid-2">

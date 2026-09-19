@@ -9,6 +9,7 @@ export default function Sidebar() {
       <NavLink to="/input-produksi" className={linkClass}>Input produksi</NavLink>
       <NavLink to="/input-repair" className={linkClass}>Input repair</NavLink>
       <NavLink to="/kelola-data" className={linkClass}>Kelola data</NavLink>
+      <NavLink to="/kelola-master" className={linkClass}>Kelola master</NavLink>
     </div>
   );
 }
