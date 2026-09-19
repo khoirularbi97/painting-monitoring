@@ -12,6 +12,7 @@ const emptyForm = {
   line_id: "",
   shift_id: "",
   customer_id: "",
+  leader: "",
   total_part: "",
   total_ok: "",
   total_comp: "",
@@ -101,6 +102,11 @@ export default function InputProduksi() {
                 {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
               </select>
             </div>
+          </div>
+
+          <div className="field">
+            <label>Leader</label>
+            <input type="text" placeholder="Nama leader shift" value={form.leader} onChange={(e) => update("leader", e.target.value)} />
           </div>
 
           <div className="grid-2">
