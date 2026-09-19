@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, extractErrors } from "../lib/api.js";
+import { exportToExcel, exportToPDF } from "../lib/export.js";
 
 function EditProduksiForm({ row, lines, shifts, customers, onCancel, onSaved }) {
   const [form, setForm] = useState({
@@ -7,6 +8,7 @@ function EditProduksiForm({ row, lines, shifts, customers, onCancel, onSaved }) 
     line_id: lines.find((l) => l.nama_line === row.nama_line)?.id || "",
     shift_id: shifts.find((s) => s.nama_shift === row.nama_shift)?.id || "",
     customer_id: customers.find((c) => c.nama_customer === row.nama_customer)?.id || "",
+    leader: row.leader || "",
     total_part: row.total_part,
     total_ok: row.ok_awal,
     total_comp: row.total_comp,
@@ -32,7 +34,7 @@ function EditProduksiForm({ row, lines, shifts, customers, onCancel, onSaved }) 
 
   return (
     <tr>
-      <td colSpan={7}>
+      <td colSpan={8}>
         <form onSubmit={handleSubmit} style={{ padding: 12, background: "#f7f8f7", borderRadius: 6 }}>
           {errors.length > 0 && (
             <div className="alert-error">{errors.map((e, i) => <div key={i}>{e}</div>)}</div>
@@ -60,6 +62,10 @@ function EditProduksiForm({ row, lines, shifts, customers, onCancel, onSaved }) 
                 {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
               </select>
             </div>
+          </div>
+          <div className="field" style={{ maxWidth: 240 }}>
+            <label>Leader</label>
+            <input type="text" value={form.leader} onChange={(e) => setForm({ ...form, leader: e.target.value })} />
           </div>
           <div className="grid-4">
             <div className="field">
@@ -119,7 +125,7 @@ function EditRepairForm({ row, onCancel, onSaved }) {
 
   return (
     <tr>
-      <td colSpan={7}>
+      <td colSpan={6}>
         <form onSubmit={handleSubmit} style={{ padding: 12, background: "#f7f8f7", borderRadius: 6 }}>
           {errors.length > 0 && (
             <div className="alert-error">{errors.map((e, i) => <div key={i}>{e}</div>)}</div>
@@ -161,12 +167,20 @@ export default function KelolaData() {
   const [repairRows, setRepairRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({ line_id: "", shift_id: "", customer_id: "", start: "", end: "" });
 
   function loadAll() {
+    const params = {};
+    if (filters.line_id) params.line_id = filters.line_id;
+    if (filters.shift_id) params.shift_id = filters.shift_id;
+    if (filters.customer_id) params.customer_id = filters.customer_id;
+    if (filters.start) params.start = filters.start;
+    if (filters.end) params.end = filters.end;
+
     setLoading(true);
     Promise.all([
-      api.get("/produksi"),
-      api.get("/repair"),
+      api.get("/produksi", { params }),
+      api.get("/repair", { params }),
     ]).then(([p, r]) => {
       setProduksiRows(p.data);
       setRepairRows(r.data);
@@ -177,8 +191,9 @@ export default function KelolaData() {
     api.get("/master/line").then((r) => setLines(r.data));
     api.get("/master/shift").then((r) => setShifts(r.data));
     api.get("/master/customer").then((r) => setCustomers(r.data));
-    loadAll();
   }, []);
+
+  useEffect(() => { loadAll(); }, [filters]);
 
   async function handleDeleteProduksi(id) {
     if (!confirm("Hapus data produksi ini? Data repair terkait juga akan ikut terhapus.")) return;
@@ -192,12 +207,83 @@ export default function KelolaData() {
     loadAll();
   }
 
+  const PRODUKSI_COLUMNS = [
+    { key: "tanggal", label: "Tanggal" },
+    { key: "nama_line", label: "Line" },
+    { key: "nama_shift", label: "Shift" },
+    { key: "nama_customer", label: "Customer" },
+    { key: "leader", label: "Leader" },
+    { key: "total_part", label: "Total Part" },
+    { key: "total_ok_final", label: "OK Final" },
+    { key: "total_comp", label: "Compound" },
+    { key: "total_ng_final", label: "NG Final" },
+    { key: "persen_ok_final", label: "%OK Final" },
+    { key: "efisiensi_hanger", label: "Eff. Hanger" },
+  ];
+
+  const REPAIR_COLUMNS = [
+    { key: "tanggal_repair", label: "Tanggal Repair" },
+    { key: "tanggal_produksi", label: "Tanggal Produksi" },
+    { key: "nama_line", label: "Line" },
+    { key: "nama_shift", label: "Shift" },
+    { key: "nama_customer", label: "Customer" },
+    { key: "total_comp_diproses", label: "Comp Diproses" },
+    { key: "total_hasil_ok", label: "Hasil OK" },
+    { key: "total_hasil_ng", label: "Hasil NG" },
+  ];
+
+  function handleExportExcel() {
+    if (tab === "produksi") exportToExcel(produksiRows, PRODUKSI_COLUMNS, "data-produksi-painting");
+    else exportToExcel(repairRows, REPAIR_COLUMNS, "data-repair-painting");
+  }
+
+  function handleExportPDF() {
+    if (tab === "produksi") exportToPDF(produksiRows, PRODUKSI_COLUMNS, "data-produksi-painting", "Data Produksi Painting");
+    else exportToPDF(repairRows, REPAIR_COLUMNS, "data-repair-painting", "Data Repair Painting");
+  }
+
   return (
     <div>
       <h1 className="page-title">Kelola data</h1>
       <p className="page-subtitle">Edit atau hapus data produksi dan hasil repair yang sudah diinput</p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="grid-4">
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Line</label>
+            <select value={filters.line_id} onChange={(e) => setFilters({ ...filters, line_id: e.target.value })}>
+              <option value="">Semua</option>
+              {lines.map((l) => <option key={l.id} value={l.id}>{l.nama_line}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Shift</label>
+            <select value={filters.shift_id} onChange={(e) => setFilters({ ...filters, shift_id: e.target.value })}>
+              <option value="">Semua</option>
+              {shifts.map((s) => <option key={s.id} value={s.id}>{s.nama_shift}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Customer</label>
+            <select value={filters.customer_id} onChange={(e) => setFilters({ ...filters, customer_id: e.target.value })}>
+              <option value="">Semua</option>
+              {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{ marginBottom: 0, display: "flex", gap: 6 }}>
+            <div style={{ flex: 1 }}>
+              <label>Dari tanggal</label>
+              <input type="date" value={filters.start} onChange={(e) => setFilters({ ...filters, start: e.target.value })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Sampai</label>
+              <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <button
           className={tab === "produksi" ? "btn" : "btn-ghost"}
           onClick={() => { setTab("produksi"); setEditingId(null); }}
@@ -210,6 +296,9 @@ export default function KelolaData() {
         >
           Data repair
         </button>
+        <div style={{ flex: 1 }} />
+        <button className="btn-ghost" onClick={handleExportExcel}>Export Excel</button>
+        <button className="btn-ghost" onClick={handleExportPDF}>Export PDF</button>
       </div>
 
       <div className="card">
@@ -223,7 +312,7 @@ export default function KelolaData() {
               <table>
                 <thead>
                   <tr>
-                    <th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th>
+                    <th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th>
                     <th style={{ textAlign: "right" }}>Part</th>
                     <th style={{ textAlign: "right" }}>%OK final</th>
                     <th></th>
@@ -245,6 +334,7 @@ export default function KelolaData() {
                         <td>{r.nama_line}</td>
                         <td>{r.nama_shift}</td>
                         <td>{r.nama_customer}</td>
+                        <td>{r.leader || "-"}</td>
                         <td className="num">{r.total_part}</td>
                         <td className="num">{r.persen_ok_final}%</td>
                         <td style={{ display: "flex", gap: 6 }}>

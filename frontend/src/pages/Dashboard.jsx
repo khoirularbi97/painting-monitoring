@@ -3,6 +3,21 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { api } from "../lib/api.js";
+import { exportToExcel, exportToPDF } from "../lib/export.js";
+
+const EXPORT_COLUMNS = [
+  { key: "tanggal", label: "Tanggal" },
+  { key: "nama_line", label: "Line" },
+  { key: "nama_shift", label: "Shift" },
+  { key: "nama_customer", label: "Customer" },
+  { key: "leader", label: "Leader" },
+  { key: "total_part", label: "Total Part" },
+  { key: "total_ok_final", label: "OK Final" },
+  { key: "total_comp", label: "Compound" },
+  { key: "total_ng_final", label: "NG Final" },
+  { key: "persen_ok_final", label: "%OK Final" },
+  { key: "efisiensi_hanger", label: "Eff. Hanger" },
+];
 
 export default function Dashboard() {
   const [lines, setLines] = useState([]);
@@ -111,7 +126,25 @@ export default function Dashboard() {
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Detail data</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Detail data</p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn-ghost"
+              disabled={rows.length === 0}
+              onClick={() => exportToExcel(rows, EXPORT_COLUMNS, "dashboard-painting")}
+            >
+              Export Excel
+            </button>
+            <button
+              className="btn-ghost"
+              disabled={rows.length === 0}
+              onClick={() => exportToPDF(rows, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting")}
+            >
+              Export PDF
+            </button>
+          </div>
+        </div>
         {loadingRows ? (
           <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
         ) : rows.length === 0 ? (
@@ -125,6 +158,7 @@ export default function Dashboard() {
                   <th>Line</th>
                   <th>Shift</th>
                   <th>Customer</th>
+                  <th>Leader</th>
                   <th style={{ textAlign: "right" }}>Part</th>
                   <th style={{ textAlign: "right" }}>OK final</th>
                   <th style={{ textAlign: "right" }}>Comp</th>
@@ -140,6 +174,7 @@ export default function Dashboard() {
                     <td>{r.nama_line}</td>
                     <td>{r.nama_shift}</td>
                     <td>{r.nama_customer}</td>
+                    <td>{r.leader || "-"}</td>
                     <td className="num">{r.total_part}</td>
                     <td className="num"><span className="pill pill-ok">{r.total_ok_final}</span></td>
                     <td className="num"><span className="pill pill-comp">{r.total_comp}</span></td>
