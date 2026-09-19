@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { api } from "../lib/api.js";
-import { exportToExcel, exportToPDF } from "../lib/export.js";
+import { exportToExcel, exportToPDF, captureChartImage } from "../lib/export.js";
 
 const EXPORT_COLUMNS = [
   { key: "tanggal", label: "Tanggal" },
@@ -28,6 +28,8 @@ export default function Dashboard() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingRows, setLoadingRows] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const chartRef = useRef(null);
 
   useEffect(() => {
     api.get("/master/line").then((r) => setLines(r.data));
@@ -106,7 +108,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" ref={chartRef}>
         {loading ? (
           <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
         ) : data.length === 0 ? (
@@ -138,10 +140,18 @@ export default function Dashboard() {
             </button>
             <button
               className="btn-ghost"
-              disabled={rows.length === 0}
-              onClick={() => exportToPDF(rows, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting")}
+              disabled={rows.length === 0 || exportingPDF}
+              onClick={async () => {
+                setExportingPDF(true);
+                try {
+                  const chartImage = await captureChartImage(chartRef.current);
+                  exportToPDF(rows, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting", chartImage);
+                } finally {
+                  setExportingPDF(false);
+                }
+              }}
             >
-              Export PDF
+              {exportingPDF ? "Menyiapkan..." : "Export PDF"}
             </button>
           </div>
         </div>
