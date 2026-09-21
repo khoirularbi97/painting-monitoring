@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PaginatedTable from "../components/PaginatedTable.jsx";
 import { api, extractErrors } from "../lib/api.js";
 import { exportToExcel, exportToPDF } from "../lib/export.js";
 
@@ -323,84 +324,124 @@ export default function KelolaData() {
             <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data produksi.</p>
           ) : (
             <div style={{ overflowX: "auto" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th>
-                    <th style={{ textAlign: "right" }}>Part</th>
-                    <th style={{ textAlign: "right" }}>%OK final</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {produksiRows.map((r) => (
-                    editingId === `p-${r.produksi_id}` ? (
-                      <EditProduksiForm
-                        key={r.produksi_id}
-                        row={r}
-                        lines={lines} shifts={shifts} customers={customers} leaders={leaders}
-                        onCancel={() => setEditingId(null)}
-                        onSaved={() => { setEditingId(null); loadAll(); }}
-                      />
-                    ) : (
-                      <tr key={r.produksi_id}>
-                        <td>{r.tanggal}</td>
-                        <td>{r.nama_line}</td>
-                        <td>{r.nama_shift}</td>
-                        <td>{r.nama_customer}</td>
-                        <td>{r.nama_leader ?? r.leader ?? "-"}</td>
-                        <td className="num">{r.total_part}</td>
-                        <td className="num">{r.persen_ok_final}%</td>
-                        <td style={{ display: "flex", gap: 6 }}>
-                          <button className="btn-ghost" onClick={() => setEditingId(`p-${r.produksi_id}`)}>Edit</button>
-                          <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteProduksi(r.produksi_id)}>Hapus</button>
-                        </td>
+              <PaginatedTable
+                rows={produksiRows}
+                defaultPageSize={10}
+                searchable
+                searchKeys={[
+                  "tanggal",
+                  "nama_line",
+                  "nama_shift",
+                  "nama_customer",
+                  "nama_leader",
+                  "leader",
+                  "total_part",
+                  "persen_ok_final",
+                ]}
+                searchPlaceholder="Cari tanggal, line, leader, part..."
+              >
+                {(currentRows) => (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th>
+                        <th style={{ textAlign: "right" }}>Part</th>
+                        <th style={{ textAlign: "right" }}>%OK final</th>
+                        <th></th>
                       </tr>
-                    )
-                  ))}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {currentRows.map((r) => (
+                        editingId === `p-${r.produksi_id}` ? (
+                          <EditProduksiForm
+                            key={r.produksi_id}
+                            row={r}
+                            lines={lines} shifts={shifts} customers={customers} leaders={leaders}
+                            onCancel={() => setEditingId(null)}
+                            onSaved={() => { setEditingId(null); loadAll(); }}
+                          />
+                        ) : (
+                          <tr key={r.produksi_id}>
+                            <td>{r.tanggal}</td>
+                            <td>{r.nama_line}</td>
+                            <td>{r.nama_shift}</td>
+                            <td>{r.nama_customer}</td>
+                            <td>{r.nama_leader ?? r.leader ?? "-"}</td>
+                            <td className="num">{r.total_part}</td>
+                            <td className="num">{r.persen_ok_final}%</td>
+                            <td style={{ display: "flex", gap: 6 }}>
+                              <button className="btn-ghost" onClick={() => setEditingId(`p-${r.produksi_id}`)}>Edit</button>
+                              <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteProduksi(r.produksi_id)}>Hapus</button>
+                            </td>
+                          </tr>
+                        )
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </PaginatedTable>
             </div>
           )
         ) : repairRows.length === 0 ? (
           <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data repair.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Tanggal repair</th><th>Produksi asal</th>
-                  <th style={{ textAlign: "right" }}>Comp diproses</th>
-                  <th style={{ textAlign: "right" }}>Hasil OK</th>
-                  <th style={{ textAlign: "right" }}>Hasil NG</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {repairRows.map((r) => (
-                  editingId === `r-${r.id}` ? (
-                    <EditRepairForm
-                      key={r.id}
-                      row={r}
-                      onCancel={() => setEditingId(null)}
-                      onSaved={() => { setEditingId(null); loadAll(); }}
-                    />
-                  ) : (
-                    <tr key={r.id}>
-                      <td>{r.tanggal_repair}</td>
-                      <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader ?? r.leader ?? "-"} . {r.tanggal_produksi}</td>
-                      <td className="num">{r.total_comp_diproses}</td>
-                      <td className="num">{r.total_hasil_ok}</td>
-                      <td className="num">{r.total_hasil_ng}</td>
-                      <td style={{ display: "flex", gap: 6 }}>
-                        <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
-                        <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
-                      </td>
+            <PaginatedTable
+              rows={repairRows}
+              defaultPageSize={10}
+              searchable
+              searchKeys={[
+                "tanggal_repair",
+                "tanggal_produksi",
+                "nama_line",
+                "nama_shift",
+                "nama_customer",
+                "nama_leader",
+                "leader",
+                "total_comp_diproses",
+                "total_hasil_ok",
+                "total_hasil_ng",
+              ]}
+              searchPlaceholder="Cari tanggal, line, leader, hasil repair..."
+            >
+              {(currentRows) => (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tanggal repair</th><th>Produksi asal</th>
+                      <th style={{ textAlign: "right" }}>Comp diproses</th>
+                      <th style={{ textAlign: "right" }}>Hasil OK</th>
+                      <th style={{ textAlign: "right" }}>Hasil NG</th>
+                      <th></th>
                     </tr>
-                  )
-                ))}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {currentRows.map((r) => (
+                      editingId === `r-${r.id}` ? (
+                        <EditRepairForm
+                          key={r.id}
+                          row={r}
+                          onCancel={() => setEditingId(null)}
+                          onSaved={() => { setEditingId(null); loadAll(); }}
+                        />
+                      ) : (
+                        <tr key={r.id}>
+                          <td>{r.tanggal_repair}</td>
+                          <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader ?? r.leader ?? "-"} . {r.tanggal_produksi}</td>
+                          <td className="num">{r.total_comp_diproses}</td>
+                          <td className="num">{r.total_hasil_ok}</td>
+                          <td className="num">{r.total_hasil_ng}</td>
+                          <td style={{ display: "flex", gap: 6 }}>
+                            <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
+                            <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
+                          </td>
+                        </tr>
+                      )
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </PaginatedTable>
           </div>
         )}
       </div>

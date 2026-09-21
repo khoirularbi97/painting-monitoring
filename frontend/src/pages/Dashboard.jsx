@@ -4,6 +4,7 @@ import {
 } from "recharts";
 import { api } from "../lib/api.js";
 import { exportToExcel, exportToPDF, captureChartImage } from "../lib/export.js";
+import PaginatedTable from "../components/PaginatedTable.jsx";
 
 const EXPORT_COLUMNS = [
   { key: "tanggal", label: "Tanggal" },
@@ -261,60 +262,83 @@ export default function Dashboard() {
           <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data untuk filter ini.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Line</th>
-                  <th>Shift</th>
-                  <th>Customer</th>
-                  <th>Leader</th>
-                  <th style={{ textAlign: "right" }}>Part</th>
-                  <th style={{ textAlign: "right" }}>OK awal</th>
-                  <th style={{ textAlign: "right" }}>NG awal</th>
-                  <th style={{ textAlign: "right" }}>Comp awal</th>
-                  <th style={{ textAlign: "right" }}>%OK awal</th>
-                  <th style={{ textAlign: "right" }}>OK final</th>
-                  <th style={{ textAlign: "right" }}>Comp</th>
-                  <th style={{ textAlign: "right" }}>%Compound</th>
-                  <th style={{ textAlign: "right" }}>NG final</th>
-                  <th style={{ textAlign: "right" }}>%OK final</th>
-                  <th style={{ textAlign: "right" }}>Eff. hanger</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const part = Number(r.total_part) || 0;
-                  const okAwal = Number(r.ok_awal) || 0;
-                  const comp = Number(r.total_comp) || 0;
-                  const persenOkAwalVal = r.persen_ok_awal !== undefined && r.persen_ok_awal !== null
-                    ? Number(r.persen_ok_awal)
-                    : part ? Math.round((okAwal / part) * 1000) / 10 : null;
-                  const persenCompVal = part ? Math.round((comp / part) * 1000) / 10 : null;
-
-                  return (
-                    <tr key={r.produksi_id}>
-                      <td>{r.tanggal}</td>
-                      <td>{r.nama_line}</td>
-                      <td>{r.nama_shift}</td>
-                      <td>{r.nama_customer}</td>
-                      <td>{r.leader || "-"}</td>
-                      <td className="num">{r.total_part}</td>
-                      <td className="num"><span className="pill pill-ok">{r.ok_awal}</span></td>
-                      <td className="num"><span className="pill pill-ng">{r.ng_awal}</span></td>
-                      <td className="num"><span className="pill pill-comp">{r.total_comp}</span></td>
-                      <td className="num">{persenOkAwalVal == null ? "-" : `${persenOkAwalVal}%`}</td>
-                      <td className="num"><span className="pill pill-ok">{r.total_ok_final}</span></td>
-                      <td className="num"><span className="pill pill-comp">{r.total_comp}</span></td>
-                      <td className="num">{persenCompVal == null ? "-" : `${persenCompVal}%`}</td>
-                      <td className="num"><span className="pill pill-ng">{r.total_ng_final}</span></td>
-                      <td className="num">{r.persen_ok_final}%</td>
-                      <td className="num">{r.efisiensi_hanger}</td>
+            <PaginatedTable
+              rows={rows}
+              defaultPageSize={10}
+              searchable
+              searchKeys={[
+                "tanggal",
+                "nama_line",
+                "nama_shift",
+                "nama_customer",
+                "leader",
+                "total_part",
+                "ok_awal",
+                "ng_awal",
+                "total_comp",
+                "total_ok_final",
+                "total_ng_final",
+                "persen_ok_final",
+              ]}
+              searchPlaceholder="Cari tanggal, line, leader, part..."
+            >
+              {(currentRows) => (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tanggal</th>
+                      <th>Line</th>
+                      <th>Shift</th>
+                      <th>Customer</th>
+                      <th>Leader</th>
+                      <th style={{ textAlign: "right" }}>Part</th>
+                      <th style={{ textAlign: "right" }}>OK awal</th>
+                      <th style={{ textAlign: "right" }}>NG awal</th>
+                      <th style={{ textAlign: "right" }}>Comp awal</th>
+                      <th style={{ textAlign: "right" }}>%OK awal</th>
+                      <th style={{ textAlign: "right" }}>OK final</th>
+                      <th style={{ textAlign: "right" }}>Comp</th>
+                      <th style={{ textAlign: "right" }}>%Compound</th>
+                      <th style={{ textAlign: "right" }}>NG final</th>
+                      <th style={{ textAlign: "right" }}>%OK final</th>
+                      <th style={{ textAlign: "right" }}>Eff. hanger</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {currentRows.map((r) => {
+                      const part = Number(r.total_part) || 0;
+                      const okAwal = Number(r.ok_awal) || 0;
+                      const comp = Number(r.total_comp) || 0;
+                      const persenOkAwalVal = r.persen_ok_awal !== undefined && r.persen_ok_awal !== null
+                        ? Number(r.persen_ok_awal)
+                        : part ? Math.round((okAwal / part) * 1000) / 10 : null;
+                      const persenCompVal = part ? Math.round((comp / part) * 1000) / 10 : null;
+
+                      return (
+                        <tr key={r.produksi_id}>
+                          <td>{r.tanggal}</td>
+                          <td>{r.nama_line}</td>
+                          <td>{r.nama_shift}</td>
+                          <td>{r.nama_customer}</td>
+                          <td>{r.leader || "-"}</td>
+                          <td className="num">{r.total_part}</td>
+                          <td className="num"><span className="pill pill-ok">{r.ok_awal}</span></td>
+                          <td className="num"><span className="pill pill-ng">{r.ng_awal}</span></td>
+                          <td className="num"><span className="pill pill-comp">{r.total_comp}</span></td>
+                          <td className="num">{persenOkAwalVal == null ? "-" : `${persenOkAwalVal}%`}</td>
+                          <td className="num"><span className="pill pill-ok">{r.total_ok_final}</span></td>
+                          <td className="num"><span className="pill pill-comp">{r.total_comp}</span></td>
+                          <td className="num">{persenCompVal == null ? "-" : `${persenCompVal}%`}</td>
+                          <td className="num"><span className="pill pill-ng">{r.total_ng_final}</span></td>
+                          <td className="num">{r.persen_ok_final}%</td>
+                          <td className="num">{r.efisiensi_hanger}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </PaginatedTable>
           </div>
         )}
       </div>

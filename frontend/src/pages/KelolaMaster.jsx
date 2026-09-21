@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PaginatedTable from "../components/PaginatedTable.jsx";
 import { api, extractErrors } from "../lib/api.js";
 
 const ENTITY_CONFIG = {
@@ -103,79 +104,89 @@ function MasterTable({ entityKey }) {
         <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>{cfg.displayLabel}</th>
-                {cfg.extraFields.map((f) => <th key={f.key}>{f.label}</th>)}
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  {editingId === row.id ? (
-                    <>
+          <PaginatedTable
+            rows={rows}
+            defaultPageSize={10}
+            searchable
+            searchKeys={[cfg.nameField, ...cfg.extraFields.map((f) => f.key)]}
+            searchPlaceholder={`Cari ${cfg.label.toLowerCase()}...`}
+          >
+            {(currentRows) => (
+              <table>
+                <thead>
+                  <tr>
+                    <th>{cfg.displayLabel}</th>
+                    {cfg.extraFields.map((f) => <th key={f.key}>{f.label}</th>)}
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentRows.map((row) => (
+                    <tr key={row.id}>
+                      {editingId === row.id ? (
+                        <>
+                          <td>
+                            <input
+                              value={form[cfg.nameField] || ""}
+                              onChange={(e) => setForm({ ...form, [cfg.nameField]: e.target.value })}
+                            />
+                          </td>
+                          {cfg.extraFields.map((f) => (
+                            <td key={f.key}>
+                              <input
+                                type={f.type}
+                                value={form[f.key] || ""}
+                                onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                              />
+                            </td>
+                          ))}
+                          <td style={{ display: "flex", gap: 6 }}>
+                            <button className="btn-ghost" onClick={() => saveEdit(row.id)}>Simpan</button>
+                            <button className="btn-ghost" onClick={() => setEditingId(null)}>Batal</button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td>{row[cfg.nameField]}</td>
+                          {cfg.extraFields.map((f) => <td key={f.key}>{row[f.key] || "-"}</td>)}
+                          <td style={{ display: "flex", gap: 6 }}>
+                            <button className="btn-ghost" onClick={() => startEdit(row)}>Edit</button>
+                            <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDelete(row.id)}>Hapus</button>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+
+                  {adding && (
+                    <tr>
                       <td>
                         <input
-                          value={form[cfg.nameField] || ""}
-                          onChange={(e) => setForm({ ...form, [cfg.nameField]: e.target.value })}
+                          autoFocus
+                          value={newForm[cfg.nameField] || ""}
+                          onChange={(e) => setNewForm({ ...newForm, [cfg.nameField]: e.target.value })}
+                          placeholder={cfg.displayLabel}
                         />
                       </td>
                       {cfg.extraFields.map((f) => (
                         <td key={f.key}>
                           <input
                             type={f.type}
-                            value={form[f.key] || ""}
-                            onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                            value={newForm[f.key] || ""}
+                            onChange={(e) => setNewForm({ ...newForm, [f.key]: e.target.value })}
                           />
                         </td>
                       ))}
                       <td style={{ display: "flex", gap: 6 }}>
-                        <button className="btn-ghost" onClick={() => saveEdit(row.id)}>Simpan</button>
-                        <button className="btn-ghost" onClick={() => setEditingId(null)}>Batal</button>
+                        <button className="btn" onClick={handleAdd}>Tambah</button>
+                        <button className="btn-ghost" onClick={() => { setAdding(false); setNewForm({}); }}>Batal</button>
                       </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>{row[cfg.nameField]}</td>
-                      {cfg.extraFields.map((f) => <td key={f.key}>{row[f.key] || "-"}</td>)}
-                      <td style={{ display: "flex", gap: 6 }}>
-                        <button className="btn-ghost" onClick={() => startEdit(row)}>Edit</button>
-                        <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDelete(row.id)}>Hapus</button>
-                      </td>
-                    </>
+                    </tr>
                   )}
-                </tr>
-              ))}
-
-              {adding && (
-                <tr>
-                  <td>
-                    <input
-                      autoFocus
-                      value={newForm[cfg.nameField] || ""}
-                      onChange={(e) => setNewForm({ ...newForm, [cfg.nameField]: e.target.value })}
-                      placeholder={cfg.displayLabel}
-                    />
-                  </td>
-                  {cfg.extraFields.map((f) => (
-                    <td key={f.key}>
-                      <input
-                        type={f.type}
-                        value={newForm[f.key] || ""}
-                        onChange={(e) => setNewForm({ ...newForm, [f.key]: e.target.value })}
-                      />
-                    </td>
-                  ))}
-                  <td style={{ display: "flex", gap: 6 }}>
-                    <button className="btn" onClick={handleAdd}>Tambah</button>
-                    <button className="btn-ghost" onClick={() => { setAdding(false); setNewForm({}); }}>Batal</button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                </tbody>
+              </table>
+            )}
+          </PaginatedTable>
         </div>
       )}
 

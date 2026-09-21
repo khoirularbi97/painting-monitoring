@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PaginatedTable from "../components/PaginatedTable.jsx";
 import { api, extractErrors } from "../lib/api.js";
 
 export default function InputRepair() {
@@ -56,24 +57,28 @@ export default function InputRepair() {
         {menunggu.length === 0 ? (
           <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>Tidak ada Compound yang menunggu repair.</p>
         ) : (
-          <table>
-            <thead>
-              <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th><th>Sisa</th><th></th></tr>
-            </thead>
-            <tbody>
-              {menunggu.map((m) => (
-                <tr key={m.produksi_id} style={selected?.produksi_id === m.produksi_id ? { background: "#f0f6fb" } : {}}>
-                  <td>{m.tanggal}</td>
-                  <td>{m.nama_line}</td>
-                  <td>{m.nama_shift}</td>
-                  <td>{m.nama_customer}</td>
-                  <td>{m.nama_leader ?? m.leader ?? "-"}</td>
-                  <td className="num">{m.sisa_belum_repair}</td>
-                  <td><button type="button" className="btn-ghost" onClick={() => { setSelected(m); setSuccess(false); }}>Pilih</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <PaginatedTable rows={menunggu} defaultPageSize={10} searchable searchKeys={["tanggal", "nama_line", "nama_shift", "nama_customer", "nama_leader", "leader", "sisa_belum_repair"]} searchPlaceholder="Cari tanggal, line, leader...">
+            {(currentRows) => (
+              <table>
+                <thead>
+                  <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th><th>Sisa</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {currentRows.map((m) => (
+                    <tr key={m.produksi_id} style={selected?.produksi_id === m.produksi_id ? { background: "#f0f6fb" } : {}}>
+                      <td>{m.tanggal}</td>
+                      <td>{m.nama_line}</td>
+                      <td>{m.nama_shift}</td>
+                      <td>{m.nama_customer}</td>
+                      <td>{m.nama_leader ?? m.leader ?? "-"}</td>
+                      <td className="num">{m.sisa_belum_repair}</td>
+                      <td><button type="button" className="btn-ghost" onClick={() => { setSelected(m); setSuccess(false); }}>Pilih</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </PaginatedTable>
         )}
       </div>
 
