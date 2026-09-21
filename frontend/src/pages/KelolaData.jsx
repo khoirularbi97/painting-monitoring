@@ -66,7 +66,6 @@ function EditProduksiForm({ row, lines, shifts, customers, leaders, onCancel, on
           <div className="field" style={{ maxWidth: 240 }}>
             <label>Leader</label>
             <select value={form.leader_id} onChange={(e) => setForm({ ...form, leader_id: e.target.value })}>
-              <option value="">- Pilih leader -</option>
               {leaders.map((ld) => <option key={ld.id} value={ld.id}>{ld.nama_leader}</option>)}
             </select>
           </div>
