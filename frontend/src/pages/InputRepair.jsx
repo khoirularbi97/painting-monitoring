@@ -58,7 +58,7 @@ export default function InputRepair() {
         ) : (
           <table>
             <thead>
-              <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Sisa</th><th></th></tr>
+              <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th><th>Sisa</th><th></th></tr>
             </thead>
             <tbody>
               {menunggu.map((m) => (
@@ -67,6 +67,7 @@ export default function InputRepair() {
                   <td>{m.nama_line}</td>
                   <td>{m.nama_shift}</td>
                   <td>{m.nama_customer}</td>
+                  <td>{m.nama_leader ?? m.leader ?? "-"}</td>
                   <td className="num">{m.sisa_belum_repair}</td>
                   <td><button type="button" className="btn-ghost" onClick={() => { setSelected(m); setSuccess(false); }}>Pilih</button></td>
                 </tr>
@@ -87,7 +88,7 @@ export default function InputRepair() {
         ) : (
           <form onSubmit={handleSubmit}>
             <p style={{ fontSize: 13, marginBottom: 14 }}>
-              {selected.nama_line} · {selected.nama_shift} · {selected.nama_customer} · {selected.tanggal}
+              {selected.nama_line} · {selected.nama_shift} · {selected.nama_customer} · {selected.nama_leader ?? selected.leader ?? "-"} · {selected.tanggal}
               <br />
               <span style={{ color: "var(--ink-secondary)" }}>Sisa belum direpair: {sisa}</span>
             </p>

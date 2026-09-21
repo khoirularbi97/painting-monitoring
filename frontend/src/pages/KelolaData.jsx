@@ -3,12 +3,13 @@ import { api, extractErrors } from "../lib/api.js";
 import { exportToExcel, exportToPDF } from "../lib/export.js";
 
 function EditProduksiForm({ row, lines, shifts, customers, leaders, onCancel, onSaved }) {
+  const leaderName = row.nama_leader ?? row.leader ?? "";
   const [form, setForm] = useState({
     tanggal: row.tanggal,
     line_id: lines.find((l) => l.nama_line === row.nama_line)?.id || "",
     shift_id: shifts.find((s) => s.nama_shift === row.nama_shift)?.id || "",
     customer_id: customers.find((c) => c.nama_customer === row.nama_customer)?.id || "",
-    leader_id: leaders.find((ld) => ld.nama_leader === row.nama_leader)?.id || "",
+    leader_id: leaders.find((ld) => ld.nama_leader === leaderName)?.id || "",
     total_part: row.total_part,
     total_ok: row.ok_awal,
     total_comp: row.total_comp,
@@ -217,7 +218,7 @@ export default function KelolaData() {
     { key: "nama_line", label: "Line" },
     { key: "nama_shift", label: "Shift" },
     { key: "nama_customer", label: "Customer" },
-    { key: "nama_leader", label: "Leader" },
+    { key: "leader", label: "Leader" },
     { key: "total_part", label: "Total Part" },
     { key: "total_ok_final", label: "OK Final" },
     { key: "total_comp", label: "Compound" },
@@ -232,7 +233,7 @@ export default function KelolaData() {
     { key: "nama_line", label: "Line" },
     { key: "nama_shift", label: "Shift" },
     { key: "nama_customer", label: "Customer" },
-    { key: "nama_leader", label: "Leader" },
+    { key: "leader", label: "Leader" },
     { key: "total_comp_diproses", label: "Comp Diproses" },
     { key: "total_hasil_ok", label: "Hasil OK" },
     { key: "total_hasil_ng", label: "Hasil NG" },
@@ -347,7 +348,7 @@ export default function KelolaData() {
                         <td>{r.nama_line}</td>
                         <td>{r.nama_shift}</td>
                         <td>{r.nama_customer}</td>
-                        <td>{r.nama_leader}</td>
+                        <td>{r.nama_leader ?? r.leader ?? "-"}</td>
                         <td className="num">{r.total_part}</td>
                         <td className="num">{r.persen_ok_final}%</td>
                         <td style={{ display: "flex", gap: 6 }}>
@@ -387,7 +388,7 @@ export default function KelolaData() {
                   ) : (
                     <tr key={r.id}>
                       <td>{r.tanggal_repair}</td>
-                      <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader} . {r.tanggal_produksi}</td>
+                      <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader ?? r.leader ?? "-"} . {r.tanggal_produksi}</td>
                       <td className="num">{r.total_comp_diproses}</td>
                       <td className="num">{r.total_hasil_ok}</td>
                       <td className="num">{r.total_hasil_ng}</td>

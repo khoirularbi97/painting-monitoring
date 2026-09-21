@@ -46,12 +46,14 @@ router.post("/", async (req, res) => {
 // GET /api/repair — daftar semua hasil repair, lengkap dengan info produksi asal
 router.get("/", async (req, res) => {
   const result = await query(`
-    SELECT r.*, p.tanggal AS tanggal_produksi, l.nama_line, s.nama_shift, c.nama_customer
+    SELECT r.*, p.tanggal AS tanggal_produksi, l.nama_line, s.nama_shift, c.nama_customer,
+           ld.nama_leader AS nama_leader, ld.nama_leader AS leader
     FROM hasil_repair r
     JOIN produksi_painting p ON p.id = r.produksi_id
     JOIN m_line l ON p.line_id = l.id
     JOIN m_shift s ON p.shift_id = s.id
     JOIN m_customer c ON p.customer_id = c.id
+    LEFT JOIN m_leader ld ON p.leader_id = ld.id
     ORDER BY r.tanggal_repair DESC, r.id DESC
   `);
   res.json(result.rows);

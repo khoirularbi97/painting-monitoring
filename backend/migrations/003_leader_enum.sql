@@ -41,6 +41,7 @@ SELECT
   p.total_hanger,
   ROUND(p.total_part::numeric / NULLIF(p.total_hanger,0), 2) AS efisiensi_hanger,
   ld.nama_leader AS leader,
+  ld.nama_leader AS nama_leader,
   p.leader_id
 FROM produksi_painting p
 JOIN m_line l ON p.line_id = l.id

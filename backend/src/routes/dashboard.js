@@ -3,16 +3,17 @@ import { query } from "../db.js";
 
 const router = Router();
 
-// GET /api/dashboard/tren-ok?line_id=&shift_id=&customer_id=&start=&end=
+// GET /api/dashboard/tren-ok?line_id=&shift_id=&customer_id=&leader_id=&start=&end=
 // Mengembalikan %OK awal & %OK final per tanggal, sudah difilter
 router.get("/tren-ok", async (req, res) => {
-  const { line_id, shift_id, customer_id, start, end } = req.query;
+  const { line_id, shift_id, customer_id,leader_id, start, end } = req.query;
   const conditions = [];
   const params = [];
 
   if (line_id) { params.push(line_id); conditions.push(`p.line_id = $${params.length}`); }
   if (shift_id) { params.push(shift_id); conditions.push(`p.shift_id = $${params.length}`); }
   if (customer_id) { params.push(customer_id); conditions.push(`p.customer_id = $${params.length}`); }
+  if (leader_id) { params.push(leader_id); conditions.push(`p.leader_id = $${params.length}`); }
   if (start) { params.push(start); conditions.push(`p.tanggal >= $${params.length}`); }
   if (end) { params.push(end); conditions.push(`p.tanggal <= $${params.length}`); }
 
