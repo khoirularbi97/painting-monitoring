@@ -56,7 +56,23 @@ export default function Dashboard() {
 
     setLoading(true);
     api.get("/dashboard/tren-ok", { params })
-      .then((r) => setData(r.data))
+      .then((r) => {
+        const mapped = (r.data || []).map((d) => {
+          const part = Number(d.total_part) || 0;
+          const okAwal = Number(d.ok_awal) || 0;
+          const comp = Number(d.total_comp) || 0;
+          return {
+            ...d,
+            persen_ok_awal: d.persen_ok_awal !== undefined && d.persen_ok_awal !== null
+              ? Number(d.persen_ok_awal)
+              : part ? Math.round((okAwal / part) * 1000) / 10 : 0,
+            persen_comp: d.persen_comp !== undefined && d.persen_comp !== null
+              ? Number(d.persen_comp)
+              : part ? Math.round((comp / part) * 1000) / 10 : 0,
+          };
+        });
+        setData(mapped);
+      })
       .finally(() => setLoading(false));
 
     setLoadingRows(true);
@@ -66,11 +82,27 @@ export default function Dashboard() {
   }, [filters]);
 
   const totalPart = data.reduce((s, d) => s + d.total_part, 0);
+  function computePercentOkAwal(item) {
+    const part = Number(item.total_part) || 0;
+    const okAwal = Number(item.ok_awal) || 0;
+    if (item.persen_ok_awal !== undefined && item.persen_ok_awal !== null) return Number(item.persen_ok_awal);
+    return part ? Math.round((okAwal / part) * 1000) / 10 : 0;
+  }
+
+  function computePercentComp(item) {
+    const part = Number(item.total_part) || 0;
+    const comp = Number(item.total_comp) || 0;
+    return part ? Math.round((comp / part) * 1000) / 10 : 0;
+  }
+
   const avgOkAwal = data.length
-    ? Math.round((data.reduce((s, d) => s + d.persen_ok_awal, 0) / data.length) * 10) / 10
+    ? Math.round((data.reduce((s, d) => s + computePercentOkAwal(d), 0) / data.length) * 10) / 10
     : 0;
   const avgOkFinal = data.length
-    ? Math.round((data.reduce((s, d) => s + d.persen_ok_final, 0) / data.length) * 10) / 10
+    ? Math.round((data.reduce((s, d) => s + (d.persen_ok_final || 0), 0) / data.length) * 10) / 10
+    : 0;
+  const avgComp = data.length
+    ? Math.round((data.reduce((s, d) => s + computePercentComp(d), 0) / data.length) * 10) / 10
     : 0;
 
   return (
@@ -131,7 +163,11 @@ export default function Dashboard() {
           <p className="metric-label">Rata-rata %OK final</p>
           <p className="metric-value">{avgOkFinal}%</p>
         </div>
-        <div className="metric" style={{ gridColumn: "span 2" }}>
+        <div className="metric">
+          <p className="metric-label">Rata-rata %Compound</p>
+          <p className="metric-value">{avgComp}%</p>
+        </div>
+        <div className="metric" style={{ gridColumn: "span 1" }}>
           <p className="metric-label">Total part diproses</p>
           <p className="metric-value">{totalPart.toLocaleString("id-ID")}</p>
         </div>
@@ -150,6 +186,7 @@ export default function Dashboard() {
               <YAxis domain={[70, 100]} tickFormatter={(v) => v + "%"} tick={{ fontSize: 12 }} />
               <Tooltip formatter={(v) => v + "%"} />
               <Line type="monotone" dataKey="persen_ok_awal" name="%OK awal" stroke="#85B7EB" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_comp" name="%Compound" stroke="#F2A900" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#185FA5" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -174,7 +211,13 @@ export default function Dashboard() {
                     persen_comp: part ? Math.round((comp / part) * 1000) / 10 : null,
                   };
                 });
-                exportToExcel(prepared, EXPORT_COLUMNS, "dashboard-painting");
+                const summary = [
+                  { label: "Rata-rata %OK awal", value: `${avgOkAwal}%` },
+                  { label: "Rata-rata %OK final", value: `${avgOkFinal}%` },
+                  { label: "Rata-rata %Compound", value: `${avgComp}%` },
+                  { label: "Total part diproses", value: totalPart.toLocaleString("id-ID") },
+                ];
+                exportToExcel(prepared, EXPORT_COLUMNS, "dashboard-painting", summary);
               }}
             >
               Export Excel
@@ -196,7 +239,13 @@ export default function Dashboard() {
                       persen_comp: part ? Math.round((comp / part) * 1000) / 10 : null,
                     };
                   });
-                  exportToPDF(prepared, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting", chartImage);
+                  const summary = [
+                    { label: "Rata-rata %OK awal", value: `${avgOkAwal}%` },
+                    { label: "Rata-rata %OK final", value: `${avgOkFinal}%` },
+                    { label: "Rata-rata %Compound", value: `${avgComp}%` },
+                    { label: "Total part diproses", value: totalPart.toLocaleString("id-ID") },
+                  ];
+                  exportToPDF(prepared, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting", chartImage, summary);
                 } finally {
                   setExportingPDF(false);
                 }

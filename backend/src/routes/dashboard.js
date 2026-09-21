@@ -41,9 +41,13 @@ router.get("/tren-ok", async (req, res) => {
     const okFinal = okAwal + Number(r.ok_dari_repair || 0);
     return {
       tanggal: r.tanggal,
-      persen_ok_awal: totalPart ? Math.round((okAwal / totalPart) * 1000) / 10 : 0,
-      persen_ok_final: totalPart ? Math.round((okFinal / totalPart) * 1000) / 10 : 0,
+      ok_awal: okAwal,
+      ng_awal: Number(r.total_ng_awal) || 0,
+      total_comp: Number(r.total_comp) || 0,
       total_part: totalPart,
+      persen_ok_awal: totalPart ? Math.round((okAwal / totalPart) * 1000) / 10 : 0,
+      persen_comp: totalPart ? Math.round((Number(r.total_comp || 0) / totalPart) * 1000) / 10 : 0,
+      persen_ok_final: totalPart ? Math.round((okFinal / totalPart) * 1000) / 10 : 0,
     };
   });
 

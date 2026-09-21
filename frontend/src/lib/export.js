@@ -14,19 +14,26 @@ export async function captureChartImage(element) {
 // columns: [{ key: 'tanggal', label: 'Tanggal' }, ...]
 // rows: array data mentah (object per baris)
 
-export function exportToExcel(rows, columns, filename) {
+export function exportToExcel(rows, columns, filename, summary) {
   const data = rows.map((row) => {
     const obj = {};
     columns.forEach((col) => { obj[col.label] = row[col.key]; });
     return obj;
   });
-  const sheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
+
+  if (summary && Array.isArray(summary)) {
+    const summaryObj = summary.map((s) => ({ Metric: s.label, Value: s.value }));
+    const summarySheet = XLSX.utils.json_to_sheet(summaryObj);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+  }
+
+  const sheet = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(workbook, sheet, "Data");
   XLSX.writeFile(workbook, `${filename}.xlsx`);
 }
 
-export function exportToPDF(rows, columns, filename, title, chartImage) {
+export function exportToPDF(rows, columns, filename, title, chartImage, summary) {
   const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(14);
   doc.text(title || filename, 14, 15);
@@ -34,6 +41,18 @@ export function exportToPDF(rows, columns, filename, title, chartImage) {
   doc.text(`Diekspor: ${new Date().toLocaleString("id-ID")}`, 14, 21);
 
   let startY = 26;
+
+  // Render summary (if any)
+  if (summary && Array.isArray(summary) && summary.length) {
+    const leftX = 14;
+    let y = startY;
+    summary.forEach((s) => {
+      doc.text(`${s.label}: ${s.value}`, leftX, y);
+      y += 6;
+    });
+    startY = y + 4;
+  }
+
   if (chartImage) {
     const imgWidth = 180;
     const imgHeight = 70;
