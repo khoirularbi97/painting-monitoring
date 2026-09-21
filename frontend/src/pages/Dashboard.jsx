@@ -156,19 +156,19 @@ export default function Dashboard() {
       </div>
 
       <div className="grid-4" style={{ marginBottom: 20 }}>
-        <div className="metric">
+        <div className="metric metric-success">
           <p className="metric-label">Rata-rata %OK awal</p>
           <p className="metric-value">{avgOkAwal}%</p>
         </div>
-        <div className="metric">
+        <div className="metric metric-warn">
           <p className="metric-label">Rata-rata %OK final</p>
           <p className="metric-value">{avgOkFinal}%</p>
         </div>
-        <div className="metric">
+        <div className="metric metric-danger">
           <p className="metric-label">Rata-rata %Compound</p>
           <p className="metric-value">{avgComp}%</p>
         </div>
-        <div className="metric" style={{ gridColumn: "span 1" }}>
+        <div className="metric metric-success" style={{ gridColumn: "span 1" }}>
           <p className="metric-label">Total part diproses</p>
           <p className="metric-value">{totalPart.toLocaleString("id-ID")}</p>
         </div>

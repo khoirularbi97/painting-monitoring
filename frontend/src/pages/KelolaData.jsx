@@ -1,4 +1,13 @@
 import { useEffect, useState } from "react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import PaginatedTable from "../components/PaginatedTable.jsx";
 import { api, extractErrors } from "../lib/api.js";
 import { exportToExcel, exportToPDF } from "../lib/export.js";
@@ -250,6 +259,19 @@ export default function KelolaData() {
     else exportToPDF(repairRows, REPAIR_COLUMNS, "data-repair-painting", "Data Repair Painting");
   }
 
+  const repairChartData = [...repairRows]
+    .sort((a, b) => new Date(a.tanggal_repair) - new Date(b.tanggal_repair))
+    .map((row) => ({
+      tanggal: row.tanggal_repair,
+      ok_repair: Number(row.total_hasil_ok) || 0,
+      ng_repair: Number(row.total_hasil_ng) || 0,
+      comp_diproses: Number(row.total_comp_diproses) || 0,
+    }));
+
+  const totalRepairOk = repairRows.reduce((sum, row) => sum + (Number(row.total_hasil_ok) || 0), 0);
+  const totalRepairNg = repairRows.reduce((sum, row) => sum + (Number(row.total_hasil_ng) || 0), 0);
+  const totalCompDiproses = repairRows.reduce((sum, row) => sum + (Number(row.total_comp_diproses) || 0), 0);
+
   return (
     <div>
       <h1 className="page-title">Kelola data</h1>
@@ -385,63 +407,96 @@ export default function KelolaData() {
         ) : repairRows.length === 0 ? (
           <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data repair.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <PaginatedTable
-              rows={repairRows}
-              defaultPageSize={10}
-              searchable
-              searchKeys={[
-                "tanggal_repair",
-                "tanggal_produksi",
-                "nama_line",
-                "nama_shift",
-                "nama_customer",
-                "nama_leader",
-                "leader",
-                "total_comp_diproses",
-                "total_hasil_ok",
-                "total_hasil_ng",
-              ]}
-              searchPlaceholder="Cari tanggal, line, leader, hasil repair..."
-            >
-              {(currentRows) => (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Tanggal repair</th><th>Produksi asal</th>
-                      <th style={{ textAlign: "right" }}>Comp diproses</th>
-                      <th style={{ textAlign: "right" }}>Hasil OK</th>
-                      <th style={{ textAlign: "right" }}>Hasil NG</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentRows.map((r) => (
-                      editingId === `r-${r.id}` ? (
-                        <EditRepairForm
-                          key={r.id}
-                          row={r}
-                          onCancel={() => setEditingId(null)}
-                          onSaved={() => { setEditingId(null); loadAll(); }}
-                        />
-                      ) : (
-                        <tr key={r.id}>
-                          <td>{r.tanggal_repair}</td>
-                          <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader ?? r.leader ?? "-"} . {r.tanggal_produksi}</td>
-                          <td className="num">{r.total_comp_diproses}</td>
-                          <td className="num">{r.total_hasil_ok}</td>
-                          <td className="num">{r.total_hasil_ng}</td>
-                          <td style={{ display: "flex", gap: 6 }}>
-                            <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
-                            <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
-                          </td>
-                        </tr>
-                      )
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </PaginatedTable>
+          <div>
+            <div className="grid-3" style={{ marginBottom: 16 }}>
+              <div className="metric metric-success">
+                <p className="metric-label">Total OK repair</p>
+                <p className="metric-value">{totalRepairOk.toLocaleString("id-ID")}</p>
+              </div>
+              <div className="metric metric-danger">
+                <p className="metric-label">Total NG repair</p>
+                <p className="metric-value">{totalRepairNg.toLocaleString("id-ID")}</p>
+              </div>
+              <div className="metric metric-warn">
+                <p className="metric-label">Total compound diproses</p>
+                <p className="metric-value">{totalCompDiproses.toLocaleString("id-ID")}</p>
+              </div>
+            </div>
+
+            <div className="card" style={{ marginBottom: 16, padding: 14 }}>
+              <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Trend hasil repair</p>
+              <div style={{ width: "100%", height: 260 }}>
+                <ResponsiveContainer>
+                  <LineChart data={repairChartData}>
+                    <CartesianGrid stroke="#e1e0d9" vertical={false} />
+                    <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="ok_repair" name="OK repair" stroke="#2e7d46" strokeWidth={2.2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="ng_repair" name="NG repair" stroke="#b23a2e" strokeWidth={2.2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <PaginatedTable
+                rows={repairRows}
+                defaultPageSize={10}
+                searchable
+                searchKeys={[
+                  "tanggal_repair",
+                  "tanggal_produksi",
+                  "nama_line",
+                  "nama_shift",
+                  "nama_customer",
+                  "nama_leader",
+                  "leader",
+                  "total_comp_diproses",
+                  "total_hasil_ok",
+                  "total_hasil_ng",
+                ]}
+                searchPlaceholder="Cari tanggal, line, leader, hasil repair..."
+              >
+                {(currentRows) => (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Tanggal repair</th><th>Produksi asal</th>
+                        <th style={{ textAlign: "right" }}>Comp diproses</th>
+                        <th style={{ textAlign: "right" }}>Hasil OK</th>
+                        <th style={{ textAlign: "right" }}>Hasil NG</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentRows.map((r) => (
+                        editingId === `r-${r.id}` ? (
+                          <EditRepairForm
+                            key={r.id}
+                            row={r}
+                            onCancel={() => setEditingId(null)}
+                            onSaved={() => { setEditingId(null); loadAll(); }}
+                          />
+                        ) : (
+                          <tr key={r.id}>
+                            <td>{r.tanggal_repair}</td>
+                            <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader ?? r.leader ?? "-"} . {r.tanggal_produksi}</td>
+                            <td className="num">{r.total_comp_diproses}</td>
+                            <td className="num">{r.total_hasil_ok}</td>
+                            <td className="num">{r.total_hasil_ng}</td>
+                            <td style={{ display: "flex", gap: 6 }}>
+                              <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
+                              <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
+                            </td>
+                          </tr>
+                        )
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </PaginatedTable>
+            </div>
           </div>
         )}
       </div>
