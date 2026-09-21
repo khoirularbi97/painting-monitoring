@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { api, extractErrors } from "../lib/api.js";
 import { exportToExcel, exportToPDF } from "../lib/export.js";
 
-function EditProduksiForm({ row, lines, shifts, customers, onCancel, onSaved }) {
+function EditProduksiForm({ row, lines, shifts, customers, leaders, onCancel, onSaved }) {
   const [form, setForm] = useState({
     tanggal: row.tanggal,
     line_id: lines.find((l) => l.nama_line === row.nama_line)?.id || "",
     shift_id: shifts.find((s) => s.nama_shift === row.nama_shift)?.id || "",
     customer_id: customers.find((c) => c.nama_customer === row.nama_customer)?.id || "",
-    leader: row.leader || "",
+    leader_id: leaders.find((ld) => ld.nama_leader === row.nama_leader)?.id || "",
     total_part: row.total_part,
     total_ok: row.ok_awal,
     total_comp: row.total_comp,
@@ -65,7 +65,10 @@ function EditProduksiForm({ row, lines, shifts, customers, onCancel, onSaved }) 
           </div>
           <div className="field" style={{ maxWidth: 240 }}>
             <label>Leader</label>
-            <input type="text" value={form.leader} onChange={(e) => setForm({ ...form, leader: e.target.value })} />
+            <select value={form.leader_id} onChange={(e) => setForm({ ...form, leader_id: e.target.value })}>
+              <option value="">- Pilih leader -</option>
+              {leaders.map((ld) => <option key={ld.id} value={ld.id}>{ld.nama_leader}</option>)}
+            </select>
           </div>
           <div className="grid-4">
             <div className="field">
@@ -163,17 +166,19 @@ export default function KelolaData() {
   const [lines, setLines] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [leaders, setLeaders] = useState([]);
   const [produksiRows, setProduksiRows] = useState([]);
   const [repairRows, setRepairRows] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({ line_id: "", shift_id: "", customer_id: "", start: "", end: "" });
+  const [filters, setFilters] = useState({ line_id: "", shift_id: "", customer_id: "", leader_id: "", start: "", end: "" });
 
   function loadAll() {
     const params = {};
     if (filters.line_id) params.line_id = filters.line_id;
     if (filters.shift_id) params.shift_id = filters.shift_id;
     if (filters.customer_id) params.customer_id = filters.customer_id;
+    if (filters.leader_id) params.leader_id = filters.leader_id;
     if (filters.start) params.start = filters.start;
     if (filters.end) params.end = filters.end;
 
@@ -191,6 +196,7 @@ export default function KelolaData() {
     api.get("/master/line").then((r) => setLines(r.data));
     api.get("/master/shift").then((r) => setShifts(r.data));
     api.get("/master/customer").then((r) => setCustomers(r.data));
+    api.get("/master/leader").then((r) => setLeaders(r.data));
   }, []);
 
   useEffect(() => { loadAll(); }, [filters]);
@@ -227,6 +233,7 @@ export default function KelolaData() {
     { key: "nama_line", label: "Line" },
     { key: "nama_shift", label: "Shift" },
     { key: "nama_customer", label: "Customer" },
+    { key: "leader", label: "Leader" },
     { key: "total_comp_diproses", label: "Comp Diproses" },
     { key: "total_hasil_ok", label: "Hasil OK" },
     { key: "total_hasil_ng", label: "Hasil NG" },
@@ -268,6 +275,13 @@ export default function KelolaData() {
             <select value={filters.customer_id} onChange={(e) => setFilters({ ...filters, customer_id: e.target.value })}>
               <option value="">Semua</option>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Leader</label>
+            <select value={filters.leader_id} onChange={(e) => setFilters({ ...filters, leader_id: e.target.value })}>
+              <option value="">Semua</option>
+              {leaders.map((ld) => <option key={ld.id} value={ld.id}>{ld.nama_leader}</option>)}
             </select>
           </div>
           <div className="field" style={{ marginBottom: 0, display: "flex", gap: 6 }}>
@@ -324,7 +338,7 @@ export default function KelolaData() {
                       <EditProduksiForm
                         key={r.produksi_id}
                         row={r}
-                        lines={lines} shifts={shifts} customers={customers}
+                        lines={lines} shifts={shifts} customers={customers} leaders={leaders}
                         onCancel={() => setEditingId(null)}
                         onSaved={() => { setEditingId(null); loadAll(); }}
                       />
@@ -334,7 +348,7 @@ export default function KelolaData() {
                         <td>{r.nama_line}</td>
                         <td>{r.nama_shift}</td>
                         <td>{r.nama_customer}</td>
-                        <td>{r.leader || "-"}</td>
+                        <td>{r.nama_leader}</td>
                         <td className="num">{r.total_part}</td>
                         <td className="num">{r.persen_ok_final}%</td>
                         <td style={{ display: "flex", gap: 6 }}>
@@ -374,7 +388,7 @@ export default function KelolaData() {
                   ) : (
                     <tr key={r.id}>
                       <td>{r.tanggal_repair}</td>
-                      <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.tanggal_produksi}</td>
+                      <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader} . {r.tanggal_produksi}</td>
                       <td className="num">{r.total_comp_diproses}</td>
                       <td className="num">{r.total_hasil_ok}</td>
                       <td className="num">{r.total_hasil_ng}</td>
