@@ -33,15 +33,16 @@ function validatePayload(body) {
   return errors;
 }
 
-// GET /api/produksi?line_id=&shift_id=&customer_id=&start=&end=
+// GET /api/produksi?line_id=&shift_id=&customer_id=&leader_id=&start=&end=
 router.get("/", async (req, res) => {
-  const { line_id, shift_id, customer_id, start, end } = req.query;
+  const { line_id, shift_id, customer_id, leader_id, start, end } = req.query;
   const conditions = [];
   const params = [];
 
   if (line_id) { params.push(line_id); conditions.push(`nama_line = (SELECT nama_line FROM m_line WHERE id = $${params.length})`); }
   if (shift_id) { params.push(shift_id); conditions.push(`nama_shift = (SELECT nama_shift FROM m_shift WHERE id = $${params.length})`); }
   if (customer_id) { params.push(customer_id); conditions.push(`nama_customer = (SELECT nama_customer FROM m_customer WHERE id = $${params.length})`); }
+  if (leader_id) { params.push(leader_id); conditions.push(`leader = (SELECT nama_leader FROM m_leader WHERE id = $${params.length})`); }
   if (start) { params.push(start); conditions.push(`tanggal >= $${params.length}`); }
   if (end) { params.push(end); conditions.push(`tanggal <= $${params.length}`); }
 
@@ -67,10 +68,10 @@ router.post("/", async (req, res) => {
   try {
     const result = await query(
       `INSERT INTO produksi_painting
-        (tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by, leader_id)
+        (tanggal, line_id, shift_id, customer_id, leader_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
-      [tanggal, line_id, shift_id, customer_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by || null, leader_id || null]
+      [tanggal, line_id, shift_id, customer_id, leader_id || null, total_part, total_ok, total_comp, total_ng, total_hanger, input_by || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
