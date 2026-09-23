@@ -215,6 +215,44 @@ td.num { font-family: var(--font-mono); text-align: right; }
 .pill-comp { background: var(--comp-bg); color: var(--comp); }
 .pill-ng { background: var(--ng-bg); color: var(--ng); }
 
+/* Ranking panel styles */
+.ranking-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.ranking-title { font-size: 13px; color: var(--ink-secondary); margin: 0; font-weight: 600; }
+.ranking-header .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ranking-controls { display: flex; gap: 12px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.weight-control { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+.weight-control .label { font-size: 13px; color: var(--ink-secondary); margin: 0; }
+.weight-control .inputs { display: flex; gap: 8px; align-items: center; }
+.weight-control input[type="range"] { flex: 1; }
+.ranking-actions { display: flex; gap: 8px; align-items: center; }
+.ranking-list { margin: 0; padding-left: 0; list-style: none; }
+.ranking-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: linear-gradient(180deg,#ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 6px 14px rgba(16,24,40,0.04);
+  align-items: center;
+  transition: transform 180ms cubic-bezier(.2,.9,.3,1), box-shadow 180ms ease, background 180ms ease, border-left-color 180ms ease;
+  border-left: 4px solid transparent;
+}
+.ranking-list li:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(16,24,40,0.07);
+  background: linear-gradient(180deg,#ffffff 0%, #f7fbff 100%);
+  border-left-color: rgba(47,102,144,0.12);
+}
+.ranking-name { min-width: 160px; font-weight: 700; font-size: 15px; color: var(--ink-primary); }
+.ranking-metric { font-size: 13px; color: var(--ink-secondary); min-width: 140px; text-align: right; }
+
+/* weight control polish */
+.weight-control { min-width: 180px; }
+.weight-control .label { font-size: 13px; color: var(--ink-secondary); margin-bottom: 6px; }
+.weight-control .inputs input[type="number"] { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); }
+.weight-control input[type="range"] { accent-color: var(--accent); }
+
 /* ===== Responsive mobile ===== */
 @media (max-width: 768px) {
   .app-shell {
@@ -261,6 +299,9 @@ td.num { font-family: var(--font-mono); text-align: right; }
 
   .card { padding: 14px; }
   .metric-value { font-size: 20px; }
+
+  .weight-control { min-width: 140px; }
+  .ranking-name { min-width: 110px; }
 
   table { font-size: 12px; }
   th, td { padding: 6px 8px; }

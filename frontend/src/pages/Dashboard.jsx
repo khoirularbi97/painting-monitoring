@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Legend,
 } from "recharts";
 import { api } from "../lib/api.js";
 import { exportToExcel, exportToPDF, captureChartImage } from "../lib/export.js";
@@ -106,6 +107,171 @@ export default function Dashboard() {
     ? Math.round((data.reduce((s, d) => s + computePercentComp(d), 0) / data.length) * 10) / 10
     : 0;
 
+  // ranking controls (default sort by avg_ok_final)
+  const [rankingMetric, setRankingMetric] = useState("avg_ok_final");
+  const [rankingLimit, setRankingLimit] = useState(8);
+  const [rankingLineFilter, setRankingLineFilter] = useState("");
+  // weights (percent values, will be normalized)
+  const [wOkFinal, setWOkFinal] = useState(50);
+  const [wComp, setWComp] = useState(20);
+  const [wOkAwal, setWOkAwal] = useState(20);
+  const [wPart, setWPart] = useState(10);
+
+  function normalizeWeights(changes) {
+    const raw = {
+      wOkFinal,
+      wComp,
+      wOkAwal,
+      wPart,
+      ...changes,
+    };
+    const vals = [raw.wOkFinal || 0, raw.wComp || 0, raw.wOkAwal || 0, raw.wPart || 0];
+    const sum = vals.reduce((s, v) => s + v, 0);
+    if (sum === 0) {
+      // fallback defaults
+      setWOkFinal(50);
+      setWComp(20);
+      setWOkAwal(20);
+      setWPart(10);
+      return;
+    }
+    const scaled = vals.map((v) => (v * 100) / sum);
+    const floored = scaled.map((f) => Math.floor(f));
+    let remainder = 100 - floored.reduce((s, v) => s + v, 0);
+    const fractions = scaled.map((f, i) => ({ i, frac: f - Math.floor(f) }));
+    fractions.sort((a, b) => b.frac - a.frac);
+    const add = new Array(4).fill(0);
+    for (let k = 0; k < remainder; k++) add[fractions[k].i] = 1;
+    const final = floored.map((v, i) => v + add[i]);
+    setWOkFinal(final[0]);
+    setWComp(final[1]);
+    setWOkAwal(final[2]);
+    setWPart(final[3]);
+  }
+
+  const leaderRanking = useMemo(() => {
+    const lineName = rankingLineFilter ? (lines.find((ln) => String(ln.id) === String(rankingLineFilter))?.nama_line) : null;
+    const sourceRows = rankingLineFilter
+      ? rows.filter((r) => (r.line_id && String(r.line_id) === String(rankingLineFilter)) || (lineName && r.nama_line === lineName))
+      : rows;
+
+    const agg = {};
+    sourceRows.forEach((r) => {
+      const name = r.nama_leader ?? r.leader ?? "-";
+      if (!agg[name]) agg[name] = { name, total_part: 0, total_ok_final: 0, total_hanger: 0, total_comp: 0, total_ok_awal: 0, count: 0 };
+      agg[name].total_part += Number(r.total_part) || 0;
+      agg[name].total_ok_final += Number(r.total_ok_final) || 0;
+      agg[name].total_hanger += Number(r.total_hanger) || 0;
+      agg[name].total_comp += Number(r.total_comp) || 0;
+      agg[name].total_ok_awal += Number(r.ok_awal) || 0;
+      agg[name].count += 1;
+    });
+
+    const mapped = Object.values(agg).map((l) => ({
+      ...l,
+      avg_ok_final: l.total_part ? Math.round((l.total_ok_final / l.total_part) * 1000) / 10 : 0,
+      avg_comp: l.total_part ? Math.round((l.total_comp / l.total_part) * 1000) / 10 : 0,
+      avg_ok_awal: l.total_part ? Math.round((l.total_ok_awal / l.total_part) * 1000) / 10 : 0,
+    }));
+
+    const maxPart = mapped.length ? Math.max(...mapped.map((m) => m.total_part || 0)) : 0;
+    const withOverall = mapped.map((l) => {
+      const partNorm = maxPart ? (l.total_part / maxPart) * 100 : 0;
+      const totalW = (wOkFinal || 0) + (wComp || 0) + (wOkAwal || 0) + (wPart || 0);
+      const nwOkFinal = totalW ? (wOkFinal / totalW) : 0.5;
+      const nwComp = totalW ? (wComp / totalW) : 0.2;
+      const nwOkAwal = totalW ? (wOkAwal / totalW) : 0.2;
+      const nwPart = totalW ? (wPart / totalW) : 0.1;
+
+      const score = (
+        nwOkFinal * (l.avg_ok_final || 0) +
+        nwComp * (100 - (l.avg_comp || 0)) +
+        nwOkAwal * (l.avg_ok_awal || 0) +
+        nwPart * partNorm
+      );
+      return { ...l, overall_score: Math.round(score * 10) / 10 };
+    });
+
+    return withOverall.sort((a, b) => {
+      if (rankingMetric === "overall") return b.overall_score - a.overall_score;
+      if (rankingMetric === "avg_ok_final") return b.avg_ok_final - a.avg_ok_final;
+      if (rankingMetric === "avg_comp") return b.avg_comp - a.avg_comp;
+      if (rankingMetric === "avg_ok_awal") return b.avg_ok_awal - a.avg_ok_awal;
+      if (rankingMetric === "total_part") return b.total_part - a.total_part;
+      if (rankingMetric === "total_hanger") return b.total_hanger - a.total_hanger;
+      return b.avg_ok_final - a.avg_ok_final;
+    });
+  }, [rows, lines, rankingMetric, rankingLineFilter, wOkFinal, wComp, wOkAwal, wPart]);
+
+  const shiftHanger = {};
+  rows.forEach((r) => {
+    const shift = r.nama_shift || "-";
+    if (!shiftHanger[shift]) shiftHanger[shift] = 0;
+    shiftHanger[shift] += Number(r.total_hanger) || 0;
+  });
+  const shiftHangerList = Object.entries(shiftHanger).map(([shift, total]) => ({ shift, total }));
+
+  // Export helpers for ranking and shift hanger
+  function exportLeaderRankingExcel() {
+    const cols = [
+      { key: "name", label: "Leader" },
+      { key: "avg_ok_final", label: "%OK Final (avg)" },
+      { key: "avg_comp", label: "%Compound (avg)" },
+      { key: "avg_ok_awal", label: "%OK Awal (avg)" },
+      { key: "overall_score", label: "Bobot Keseluruhan" },
+      { key: "total_part", label: "Total Part" },
+      { key: "total_hanger", label: "Total Hanger" },
+    ];
+    const prepared = leaderRanking.map((l) => ({
+      name: l.name,
+      avg_ok_final: l.avg_ok_final,
+      avg_comp: l.avg_comp,
+      avg_ok_awal: l.avg_ok_awal,
+      overall_score: l.overall_score,
+      total_part: l.total_part,
+      total_hanger: l.total_hanger,
+    }));
+    exportToExcel(prepared, cols, "ranking-leader");
+  }
+
+  function exportLeaderRankingPDF() {
+    const cols = [
+      { key: "name", label: "Leader" },
+      { key: "avg_ok_final", label: "%OK Final (avg)" },
+      { key: "avg_comp", label: "%Compound (avg)" },
+      { key: "avg_ok_awal", label: "%OK Awal (avg)" },
+      { key: "overall_score", label: "Bobot Keseluruhan" },
+      { key: "total_part", label: "Total Part" },
+      { key: "total_hanger", label: "Total Hanger" },
+    ];
+    const prepared = leaderRanking.map((l) => ({
+      name: l.name,
+      avg_ok_final: l.avg_ok_final,
+      avg_comp: l.avg_comp,
+      avg_ok_awal: l.avg_ok_awal,
+      overall_score: l.overall_score,
+      total_part: l.total_part,
+      total_hanger: l.total_hanger,
+    }));
+    exportToPDF(prepared, cols, "ranking-leader", "Ranking Leader");
+  }
+
+  function exportShiftHangerExcel() {
+    const cols = [
+      { key: "shift", label: "Shift" },
+      { key: "total", label: "Total Hanger" },
+    ];
+    exportToExcel(shiftHangerList, cols, "shift-hanger");
+  }
+
+  function exportShiftHangerPDF() {
+    const cols = [
+      { key: "shift", label: "Shift" },
+      { key: "total", label: "Total Hanger" },
+    ];
+    exportToPDF(shiftHangerList, cols, "shift-hanger", "Perolehan Hanger per Shift");
+  }
+
   return (
     <div>
       <h1 className="page-title">Dashboard performa painting</h1>
@@ -152,6 +318,135 @@ export default function Dashboard() {
               <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Leader ranking & hanger per shift summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 16 ,marginBottom: 16}}>
+        <div className="card">
+          <div className="ranking-header">
+            <p className="ranking-title">Ranking leader</p>
+            <div className="controls">
+              <label style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Urutkan:</label>
+              <select value={rankingMetric} onChange={(e) => setRankingMetric(e.target.value)}>
+                <option value="avg_ok_final">%OK final (rata-rata)</option>
+                <option value="avg_comp">%Compound (rata-rata)</option>
+                <option value="avg_ok_awal">%OK awal (rata-rata)</option>
+                <option value="overall">Bobot keseluruhan</option>
+                <option value="total_part">Total part</option>
+                <option value="total_hanger">Total hanger</option>
+              </select>
+              <label style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Line</label>
+              <select value={rankingLineFilter} onChange={(e) => setRankingLineFilter(e.target.value)}>
+                <option value="">Semua</option>
+                {lines.map((ln) => <option key={ln.id} value={ln.id}>{ln.nama_line}</option>)}
+              </select>
+              <label style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Tampilkan</label>
+              <select value={rankingLimit} onChange={(e) => setRankingLimit(Number(e.target.value))}>
+                <option value={5}>5</option>
+                <option value={8}>8</option>
+                <option value={12}>12</option>
+              </select>
+              <div className="ranking-actions">
+                <button className="btn-ghost" onClick={exportLeaderRankingExcel}>Export Excel</button>
+                <button className="btn-ghost" onClick={exportLeaderRankingPDF}>Export PDF</button>
+              </div>
+            </div>
+          </div>
+          <div className="ranking-controls">
+            <div className="weight-control">
+              <div className="label">Bobot %OK final</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wOkFinal} onChange={(e) => normalizeWeights({ wOkFinal: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wOkFinal} onChange={(e) => normalizeWeights({ wOkFinal: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div className="weight-control">
+              <div className="label">%Compound</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wComp} onChange={(e) => normalizeWeights({ wComp: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wComp} onChange={(e) => normalizeWeights({ wComp: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div className="weight-control">
+              <div className="label">Bobot %OK awal</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wOkAwal} onChange={(e) => normalizeWeights({ wOkAwal: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wOkAwal} onChange={(e) => normalizeWeights({ wOkAwal: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div className="weight-control">
+              <div className="label">Bobot Total part</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wPart} onChange={(e) => normalizeWeights({ wPart: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wPart} onChange={(e) => normalizeWeights({ wPart: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                className="btn-ghost"
+                onClick={() => normalizeWeights({ wOkFinal: 50, wComp: 20, wOkAwal: 20, wPart: 10 })}
+                title="Reset bobot ke default"
+              >
+                Reset
+              </button>
+              <div style={{ fontSize: 13, color: "var(--ink-secondary)" }}>
+                <small>Jumlah: {wOkFinal + wComp + wOkAwal + wPart}%</small>
+              </div>
+            </div>
+          </div>
+          {leaderRanking.length === 0 ? (
+            <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data leader.</p>
+          ) : (
+            <ol className="ranking-list">
+              {leaderRanking.slice(0, rankingLimit).map((l, idx) => (
+                <li key={l.name}>
+                  <div className="ranking-name">{idx + 1}. {l.name}</div>
+                  <div className="ranking-metric">
+                    {rankingMetric === "avg_ok_final" ? (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.avg_ok_final}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "avg_comp" ? (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.avg_comp}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "avg_ok_awal" ? (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.avg_ok_awal}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "overall" ? (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.overall_score}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>score — {l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "total_hanger" ? (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "total_part" ? (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.total_part.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_hanger.toLocaleString("id-ID")} hanger</span></>
+                    ) : (
+                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+
+        <div className="card">
+          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Perolehan hanger per shift</p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginBottom: 8 }}>
+            <button className="btn-ghost" onClick={exportShiftHangerExcel}>Export Excel</button>
+            <button className="btn-ghost" onClick={exportShiftHangerPDF}>Export PDF</button>
+          </div>
+          {shiftHangerList.length === 0 ? (
+            <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data.</p>
+          ) : (
+            <div style={{ width: "100%", height: 220 }}>
+              <ResponsiveContainer>
+                <BarChart data={shiftHangerList} layout="vertical" margin={{ top: 6, right: 6, left: 6, bottom: 6 }}>
+                  <CartesianGrid stroke="#f0f2f4" vertical={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis type="category" dataKey="shift" tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v) => v.toLocaleString("id-ID")} />
+                  <Legend />
+                  <Bar dataKey="total" name="Total hanger" fill="#2f6690" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 
@@ -273,10 +568,11 @@ export default function Dashboard() {
                 "nama_customer",
                 "leader",
                 "total_part",
-                "ok_awal",
+                  "ok_awal",
                 "ng_awal",
                 "total_comp",
                 "total_ok_final",
+                  "total_hanger",
                 "total_ng_final",
                 "persen_ok_final",
               ]}
@@ -301,6 +597,7 @@ export default function Dashboard() {
                       <th style={{ textAlign: "right" }}>%Compound</th>
                       <th style={{ textAlign: "right" }}>NG final</th>
                       <th style={{ textAlign: "right" }}>%OK final</th>
+                      <th style={{ textAlign: "right" }}>Total hanger</th>
                       <th style={{ textAlign: "right" }}>Eff. hanger</th>
                     </tr>
                   </thead>
@@ -331,6 +628,7 @@ export default function Dashboard() {
                           <td className="num">{persenCompVal == null ? "-" : `${persenCompVal}%`}</td>
                           <td className="num"><span className="pill pill-ng">{r.total_ng_final}</span></td>
                           <td className="num">{r.persen_ok_final}%</td>
+                          <td className="num">{r.total_hanger ?? "-"}</td>
                           <td className="num">{r.efisiensi_hanger}</td>
                         </tr>
                       );
