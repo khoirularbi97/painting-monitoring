@@ -61,7 +61,7 @@ export default function InputRepair() {
             {(currentRows) => (
               <table>
                 <thead>
-                  <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Leader</th><th>Sisa</th><th></th></tr>
+                  <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Sisa</th><th></th></tr>
                 </thead>
                 <tbody>
                   {currentRows.map((m) => (
@@ -70,8 +70,7 @@ export default function InputRepair() {
                       <td>{m.nama_line}</td>
                       <td>{m.nama_shift}</td>
                       <td>{m.nama_customer}</td>
-                      <td>{m.nama_leader ?? m.leader ?? "-"}</td>
-                      <td className="num">{m.sisa_belum_repair}</td>
+                      <td>{m.sisa_belum_repair}</td>
                       <td><button type="button" className="btn-ghost" onClick={() => { setSelected(m); setSuccess(false); }}>Pilih</button></td>
                     </tr>
                   ))}

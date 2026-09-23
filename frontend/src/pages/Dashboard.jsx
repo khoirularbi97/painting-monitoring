@@ -322,7 +322,7 @@ export default function Dashboard() {
       </div>
 
       {/* Leader ranking & hanger per shift summary */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginTop: 16 ,marginBottom: 16}}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 ,marginBottom: 16}}>
         <div className="card">
           <div className="ranking-header">
             <p className="ranking-title">Ranking leader</p>
