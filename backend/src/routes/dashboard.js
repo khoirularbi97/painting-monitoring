@@ -38,16 +38,24 @@ router.get("/tren-ok", async (req, res) => {
   const rows = result.rows.map((r) => {
     const totalPart = Number(r.total_part) || 0;
     const okAwal = Number(r.total_ok_awal) || 0;
-    const okFinal = okAwal + Number(r.ok_dari_repair || 0);
+    const ngAwal = Number(r.total_ng_awal) || 0;
+    const comp = Number(r.total_comp) || 0;
+    const okDariRepair = Number(r.ok_dari_repair || 0);
+    const ngDariRepair = Number(r.ng_dari_repair || 0);
+    const okFinal = okAwal + okDariRepair;
+    const ngFinal = ngAwal + ngDariRepair;
     return {
       tanggal: r.tanggal,
       ok_awal: okAwal,
-      ng_awal: Number(r.total_ng_awal) || 0,
-      total_comp: Number(r.total_comp) || 0,
+      ng_awal: ngAwal,
+      ng_final: ngFinal,
+      total_comp: comp,
       total_part: totalPart,
       persen_ok_awal: totalPart ? Math.round((okAwal / totalPart) * 1000) / 10 : 0,
-      persen_comp: totalPart ? Math.round((Number(r.total_comp || 0) / totalPart) * 1000) / 10 : 0,
+      persen_comp: totalPart ? Math.round((comp / totalPart) * 1000) / 10 : 0,
       persen_ok_final: totalPart ? Math.round((okFinal / totalPart) * 1000) / 10 : 0,
+      persen_ng_awal: totalPart ? Math.round((ngAwal / totalPart) * 1000) / 10 : 0,
+      persen_ng_final: totalPart ? Math.round((ngFinal / totalPart) * 1000) / 10 : 0,
     };
   });
 

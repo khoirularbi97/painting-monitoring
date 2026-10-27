@@ -106,6 +106,12 @@ export default function Dashboard() {
   const avgComp = data.length
     ? Math.round((data.reduce((s, d) => s + computePercentComp(d), 0) / data.length) * 10) / 10
     : 0;
+  const avgNgAwal = data.length
+    ? Math.round((data.reduce((s, d) => s + (d.persen_ng_awal ?? 0), 0) / data.length) * 10) / 10
+    : 0;
+  const avgNgFinal = data.length
+    ? Math.round((data.reduce((s, d) => s + (d.persen_ng_final ?? 0), 0) / data.length) * 10) / 10
+    : 0;
 
   // ranking controls (default sort by avg_ok_final)
   const [rankingMetric, setRankingMetric] = useState("avg_ok_final");
@@ -271,6 +277,66 @@ export default function Dashboard() {
     ];
     exportToPDF(shiftHangerList, cols, "shift-hanger", "Perolehan Hanger per Shift");
   }
+
+  const shiftNames = useMemo(() => {
+    const names = [...new Set(rows.map((r) => r.nama_shift).filter(Boolean))];
+    return names;
+  }, [rows]);
+
+  const ngMatrix = useMemo(() => {
+    const linesInRows = [...new Set(rows.map((r) => r.nama_line).filter(Boolean))];
+    const matrix = linesInRows.map((line) => {
+      const item = { line, total: 0 };
+      shiftNames.forEach((shift) => {
+        const total = rows
+          .filter((r) => r.nama_line === line && r.nama_shift === shift)
+          .reduce((sum, r) => sum + (Number(r.total_ng_final ?? r.ng_awal ?? 0) || 0), 0);
+        item[shift] = total;
+        item.total += total;
+      });
+      return item;
+    });
+
+    const totalRow = { line: "TOTAL", total: 0 };
+    shiftNames.forEach((shift) => {
+      const total = rows
+        .filter((r) => r.nama_shift === shift)
+        .reduce((sum, r) => sum + (Number(r.total_ng_final ?? r.ng_awal ?? 0) || 0), 0);
+      totalRow[shift] = total;
+      totalRow.total += total;
+    });
+    matrix.push(totalRow);
+    return matrix;
+  }, [rows, shiftNames]);
+
+  const hangerMatrix = useMemo(() => {
+    const linesInRows = [...new Set(rows.map((r) => r.nama_line).filter(Boolean))];
+    const matrix = linesInRows.map((line) => {
+      const item = { line, total: 0 };
+      shiftNames.forEach((shift) => {
+        const total = rows
+          .filter((r) => r.nama_line === line && r.nama_shift === shift)
+          .reduce((sum, r) => sum + (Number(r.total_hanger) || 0), 0);
+        item[shift] = total;
+        item.total += total;
+      });
+      return item;
+    });
+
+    const totalRow = { line: "TOTAL", total: 0 };
+    shiftNames.forEach((shift) => {
+      const total = rows
+        .filter((r) => r.nama_shift === shift)
+        .reduce((sum, r) => sum + (Number(r.total_hanger) || 0), 0);
+      totalRow[shift] = total;
+      totalRow.total += total;
+    });
+    matrix.push(totalRow);
+    return matrix;
+  }, [rows, shiftNames]);
+
+  const totalHangerFiltered = rows.reduce((sum, r) => sum + (Number(r.total_hanger) || 0), 0);
+  const totalNgFiltered = rows.reduce((sum, r) => sum + (Number(r.total_ng_final ?? r.ng_awal ?? 0) || 0), 0);
 
   return (
     <div>
@@ -450,22 +516,102 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid-4" style={{ marginBottom: 20 }}>
-        <div className="metric metric-success">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 12, marginBottom: 20 }}>
+        <div className="metric metric-success" style={{ background: "#edf4eb", border: "1px solid #dfe9df" }}>
           <p className="metric-label">Rata-rata %OK awal</p>
-          <p className="metric-value">{avgOkAwal}%</p>
+          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgOkAwal}%</p>
         </div>
-        <div className="metric metric-warn">
+        <div className="metric metric-warn" style={{ background: "#f6f0f1", border: "1px solid #eadfe3" }}>
           <p className="metric-label">Rata-rata %OK final</p>
-          <p className="metric-value">{avgOkFinal}%</p>
+          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgOkFinal}%</p>
         </div>
-        <div className="metric metric-danger">
+        <div className="metric metric-danger" style={{ background: "#f6f0f0", border: "1px solid #ecdfe0" }}>
           <p className="metric-label">Rata-rata %Compound</p>
-          <p className="metric-value">{avgComp}%</p>
+          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgComp}%</p>
         </div>
-        <div className="metric metric-success" style={{ gridColumn: "span 1" }}>
+        <div className="metric metric-danger" style={{ background: "#f5ecef", border: "1px solid #eadfe3" }}>
+          <p className="metric-label">Rata-rata %NG</p>
+          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgNgFinal}%</p>
+        </div>
+        <div className="metric metric-success" style={{ background: "#edf3f5", border: "1px solid #dfe8eb" }}>
           <p className="metric-label">Total part diproses</p>
-          <p className="metric-value">{totalPart.toLocaleString("id-ID")}</p>
+          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{totalPart.toLocaleString("id-ID")}</p>
+        </div>
+        <div className="metric metric-success" style={{ background: "#edf3f5", border: "1px solid #dfe8eb" }}>
+          <p className="metric-label">Total hanger</p>
+          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{totalHangerFiltered.toLocaleString("id-ID")}</p>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <div className="card">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix NG</p>
+            <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total NG: {totalNgFiltered.toLocaleString("id-ID")}</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
+                  {shiftNames.map((shift) => (
+                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
+                  ))}
+                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ngMatrix.map((row) => (
+                  <tr key={`${row.line}-ng`}>
+                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
+                    {shiftNames.map((shift) => (
+                      <td key={`${row.line}-${shift}-ng`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
+                        {Number(row[shift] || 0).toLocaleString("id-ID")}
+                      </td>
+                    ))}
+                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
+                      {Number(row.total || 0).toLocaleString("id-ID")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="card">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix Total Hanger</p>
+            <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total hanger: {totalHangerFiltered.toLocaleString("id-ID")}</span>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
+                  {shiftNames.map((shift) => (
+                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
+                  ))}
+                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hangerMatrix.map((row) => (
+                  <tr key={`${row.line}-hanger`}>
+                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
+                    {shiftNames.map((shift) => (
+                      <td key={`${row.line}-${shift}-hanger`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
+                        {Number(row[shift] || 0).toLocaleString("id-ID")}
+                      </td>
+                    ))}
+                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
+                      {Number(row.total || 0).toLocaleString("id-ID")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -479,11 +625,13 @@ export default function Dashboard() {
             <LineChart data={data}>
               <CartesianGrid stroke="#e1e0d9" vertical={false} />
               <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
-              <YAxis domain={[70, 100]} tickFormatter={(v) => v + "%"} tick={{ fontSize: 12 }} />
+              <YAxis domain={[0, 100]} tickFormatter={(v) => v + "%"} tick={{ fontSize: 12 }} />
               <Tooltip formatter={(v) => v + "%"} />
               <Line type="monotone" dataKey="persen_ok_awal" name="%OK awal" stroke="#85B7EB" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="persen_comp" name="%Compound" stroke="#F2A900" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_ng_awal" name="%NG awal" stroke="#D94F70" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#185FA5" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_ng_final" name="%NG final" stroke="#8B1E3F" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -637,6 +785,86 @@ export default function Dashboard() {
                 </table>
               )}
             </PaginatedTable>
+          </div>
+        )}
+      </div>
+
+      {/* NG Matrix Section */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix NG</p>
+          <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total NG filter: {totalNgFiltered.toLocaleString("id-ID")}</span>
+        </div>
+        {ngMatrix.length === 0 ? (
+          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data NG.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
+                  {shiftNames.map((shift) => (
+                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
+                  ))}
+                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ngMatrix.map((row) => (
+                  <tr key={`${row.line}-ng`}>
+                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
+                    {shiftNames.map((shift) => (
+                      <td key={`${row.line}-${shift}-ng`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
+                        {Number(row[shift] || 0).toLocaleString("id-ID")}
+                      </td>
+                    ))}
+                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
+                      {Number(row.total || 0).toLocaleString("id-ID")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Hanger Matrix Section */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix Hanger</p>
+          <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total hanger filter: {totalHangerFiltered.toLocaleString("id-ID")}</span>
+        </div>
+        {hangerMatrix.length === 0 ? (
+          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data hanger.</p>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
+                  {shiftNames.map((shift) => (
+                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
+                  ))}
+                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hangerMatrix.map((row) => (
+                  <tr key={`${row.line}-hanger`}>
+                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
+                    {shiftNames.map((shift) => (
+                      <td key={`${row.line}-${shift}-hanger`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
+                        {Number(row[shift] || 0).toLocaleString("id-ID")}
+                      </td>
+                    ))}
+                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
+                      {Number(row.total || 0).toLocaleString("id-ID")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
