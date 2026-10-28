@@ -69,7 +69,7 @@ export default function InputProduksi() {
       <h1 className="page-title">Input produksi</h1>
       <p className="page-subtitle">Diisi per shift, tanggal mengikuti tanggal mulai shift (bisa H-1 dari waktu input)</p>
 
-      <div className="card" style={{ maxWidth: 520 }}>
+      <div className="card input-produksi-card">
         {success && <div className="alert-success">Data produksi berhasil disimpan.</div>}
         {errors.length > 0 && (
           <div className="alert-error">
@@ -77,13 +77,13 @@ export default function InputProduksi() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid-2">
-            <div className="field">
+        <form className="input-produksi-form" onSubmit={handleSubmit}>
+          <div className="input-produksi-grid">
+            <div className="field input-produksi-field">
               <label>Tanggal produksi</label>
               <input type="date" value={form.tanggal} onChange={(e) => update("tanggal", e.target.value)} required />
             </div>
-            <div className="field">
+            <div className="field input-produksi-field">
               <label>Line</label>
               <select value={form.line_id} onChange={(e) => update("line_id", e.target.value)} required>
                 {lines.map((l) => <option key={l.id} value={l.id}>{l.nama_line}</option>)}
@@ -91,14 +91,14 @@ export default function InputProduksi() {
             </div>
           </div>
 
-          <div className="grid-2">
-            <div className="field">
+          <div className="input-produksi-grid">
+            <div className="field input-produksi-field">
               <label>Shift</label>
               <select value={form.shift_id} onChange={(e) => update("shift_id", e.target.value)} required>
                 {shifts.map((s) => <option key={s.id} value={s.id}>{s.nama_shift}</option>)}
               </select>
             </div>
-            <div className="field">
+            <div className="field input-produksi-field">
               <label>Customer</label>
               <select value={form.customer_id} onChange={(e) => update("customer_id", e.target.value)} required>
                 {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
@@ -106,7 +106,7 @@ export default function InputProduksi() {
             </div>
           </div>
 
-          <div className="field">
+          <div className="field input-produksi-field">
             <label>Leader</label>
             <select value={form.leader_id} onChange={(e) => update("leader_id", e.target.value)}>
               <option value="">- Pilih leader -</option>
@@ -114,29 +114,29 @@ export default function InputProduksi() {
             </select>
           </div>
 
-          <div className="grid-2">
-            <div className="field">
+          <div className="input-produksi-grid">
+            <div className="field input-produksi-field">
               <label>Total part</label>
               <input type="number" min="0" value={form.total_part} onChange={(e) => update("total_part", e.target.value)} required />
             </div>
-            <div className="field">
+            <div className="field input-produksi-field">
               <label>Total OK</label>
               <input type="number" min="0" value={form.total_ok} onChange={(e) => update("total_ok", e.target.value)} required />
             </div>
           </div>
 
-          <div className="grid-2">
-            <div className="field">
+          <div className="input-produksi-grid">
+            <div className="field input-produksi-field">
               <label>Total compound</label>
               <input type="number" min="0" value={form.total_comp} onChange={(e) => update("total_comp", e.target.value)} required />
             </div>
-            <div className="field">
+            <div className="field input-produksi-field">
               <label>Total NG</label>
               <input type="number" min="0" value={form.total_ng} onChange={(e) => update("total_ng", e.target.value)} required />
             </div>
           </div>
 
-          <div className="field">
+          <div className="field input-produksi-field">
             <label>Total hanger digunakan</label>
             <input type="number" min="0" value={form.total_hanger} onChange={(e) => update("total_hanger", e.target.value)} required />
           </div>

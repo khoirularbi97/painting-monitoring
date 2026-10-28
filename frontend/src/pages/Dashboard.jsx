@@ -516,106 +516,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 12, marginBottom: 20 }}>
-        <div className="metric metric-success" style={{ background: "#edf4eb", border: "1px solid #dfe9df" }}>
+      <div className="metrics-grid metrics-grid-5">
+        <div className="metric metric-success-soft" style={{ background: "#edf4eb", border: "1px solid #dfe9df" }}>
           <p className="metric-label">Rata-rata %OK awal</p>
           <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgOkAwal}%</p>
         </div>
-        <div className="metric metric-warn" style={{ background: "#f6f0f1", border: "1px solid #eadfe3" }}>
+        <div className="metric metric-success" style={{ background: "#eaf8ee", border: "1px solid #d3eddd" }}>
           <p className="metric-label">Rata-rata %OK final</p>
           <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgOkFinal}%</p>
         </div>
-        <div className="metric metric-danger" style={{ background: "#f6f0f0", border: "1px solid #ecdfe0" }}>
+        <div className="metric metric-warning" style={{ background: "#fff7dd", border: "1px solid #f5e4a0" }}>
           <p className="metric-label">Rata-rata %Compound</p>
           <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgComp}%</p>
         </div>
-        <div className="metric metric-danger" style={{ background: "#f5ecef", border: "1px solid #eadfe3" }}>
-          <p className="metric-label">Rata-rata %NG</p>
+        <div className="metric metric-danger" style={{ background: "#fdecec", border: "1px solid #f6c8c8" }}>
+          <p className="metric-label">Rata-rata %NG final</p>
           <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgNgFinal}%</p>
         </div>
-        <div className="metric metric-success" style={{ background: "#edf3f5", border: "1px solid #dfe8eb" }}>
+        <div className="metric metric-info" style={{ background: "#edf4ff", border: "1px solid #d9e8ff" }}>
           <p className="metric-label">Total part diproses</p>
           <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{totalPart.toLocaleString("id-ID")}</p>
         </div>
-        <div className="metric metric-success" style={{ background: "#edf3f5", border: "1px solid #dfe8eb" }}>
+        <div className="metric metric-orange" style={{ background: "#fff1e6", border: "1px solid #f7d7b8" }}>
           <p className="metric-label">Total hanger</p>
           <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{totalHangerFiltered.toLocaleString("id-ID")}</p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <div className="card">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix NG</p>
-            <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total NG: {totalNgFiltered.toLocaleString("id-ID")}</span>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
-                  {shiftNames.map((shift) => (
-                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
-                  ))}
-                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ngMatrix.map((row) => (
-                  <tr key={`${row.line}-ng`}>
-                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
-                    {shiftNames.map((shift) => (
-                      <td key={`${row.line}-${shift}-ng`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
-                        {Number(row[shift] || 0).toLocaleString("id-ID")}
-                      </td>
-                    ))}
-                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
-                      {Number(row.total || 0).toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="card">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix Total Hanger</p>
-            <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total hanger: {totalHangerFiltered.toLocaleString("id-ID")}</span>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
-                  {shiftNames.map((shift) => (
-                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
-                  ))}
-                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hangerMatrix.map((row) => (
-                  <tr key={`${row.line}-hanger`}>
-                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
-                    {shiftNames.map((shift) => (
-                      <td key={`${row.line}-${shift}-hanger`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
-                        {Number(row[shift] || 0).toLocaleString("id-ID")}
-                      </td>
-                    ))}
-                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
-                      {Number(row.total || 0).toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="card" ref={chartRef}>
+      <div className="card dashboard-chart-card" ref={chartRef}>
         {loading ? (
           <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
         ) : data.length === 0 ? (
@@ -624,23 +552,46 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={data}>
               <CartesianGrid stroke="#e1e0d9" vertical={false} />
-              <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
-              <YAxis domain={[0, 100]} tickFormatter={(v) => v + "%"} tick={{ fontSize: 12 }} />
-              <Tooltip formatter={(v) => v + "%"} />
-              <Line type="monotone" dataKey="persen_ok_awal" name="%OK awal" stroke="#85B7EB" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_comp" name="%Compound" stroke="#F2A900" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_ng_awal" name="%NG awal" stroke="#D94F70" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#185FA5" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_ng_final" name="%NG final" stroke="#8B1E3F" strokeWidth={2} dot={{ r: 3 }} />
+              <XAxis
+                dataKey="tanggal"
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: "#dfeaf5" }}
+                minTickGap={14}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tickFormatter={(v) => `${v}%`}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={{ stroke: "#dfeaf5" }}
+                width={36}
+              />
+              <Tooltip
+                formatter={(v) => `${v}%`}
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #dfeaf5",
+                  boxShadow: "0 10px 20px rgba(15, 23, 42, 0.08)",
+                  background: "rgba(255,255,255,0.96)",
+                }}
+                labelStyle={{ color: "#1a2430", fontWeight: 600 }}
+              />
+              <Legend wrapperStyle={{ paddingTop: 12, fontSize: 12 }} />
+              <Line type="monotone" dataKey="persen_ok_awal" name="%OK awal" stroke="#BEE7C3" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_comp" name="%Compound" stroke="#F5D76A" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_ng_awal" name="%NG awal" stroke="#E88C8C" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#2FAE5E" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="persen_ng_final" name="%NG final" stroke="#D94F70" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div className="dashboard-detail-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Detail data</p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="dashboard-detail-actions" style={{ display: "flex", gap: 8 }}>
             <button
               className="btn-ghost"
               disabled={rows.length === 0}
@@ -659,6 +610,7 @@ export default function Dashboard() {
                   { label: "Rata-rata %OK awal", value: `${avgOkAwal}%` },
                   { label: "Rata-rata %OK final", value: `${avgOkFinal}%` },
                   { label: "Rata-rata %Compound", value: `${avgComp}%` },
+                  { label: "Rata-rata %NG final", value: `${avgNgFinal}%` },
                   { label: "Total part diproses", value: totalPart.toLocaleString("id-ID") },
                 ];
                 exportToExcel(prepared, EXPORT_COLUMNS, "dashboard-painting", summary);
@@ -687,6 +639,7 @@ export default function Dashboard() {
                     { label: "Rata-rata %OK awal", value: `${avgOkAwal}%` },
                     { label: "Rata-rata %OK final", value: `${avgOkFinal}%` },
                     { label: "Rata-rata %Compound", value: `${avgComp}%` },
+                    { label: "Rata-rata %NG final", value: `${avgNgFinal}%` },
                     { label: "Total part diproses", value: totalPart.toLocaleString("id-ID") },
                   ];
                   exportToPDF(prepared, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting", chartImage, summary);
