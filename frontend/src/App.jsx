@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar.jsx";
+import ServerBanner from "./components/ServerBanner.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import InputProduksi from "./pages/InputProduksi.jsx";
 import InputRepair from "./pages/InputRepair.jsx";
@@ -9,6 +10,7 @@ import KelolaMaster from "./pages/KelolaMaster.jsx";
 export default function App() {
   return (
     <HashRouter>
+      <ServerBanner />
       <div className="app-shell">
         <Sidebar />
         <div className="main">
