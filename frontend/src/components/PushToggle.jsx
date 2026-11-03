@@ -23,7 +23,7 @@ function DownloadIcon() {
 }
 
 // Tombol "Pasang aplikasi" dan saklar notifikasi di bawah menu samping.
-export default function PushToggle() {
+export default function PushToggle({ variant = "sidebar" }) {
   const [state, setState] = useState("loading"); // loading | unsupported | denied | off | on
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -98,9 +98,9 @@ export default function PushToggle() {
   const canToggle = state === "on" || state === "off";
 
   return (
-    <div className="sidebar-actions">
+    <div className={variant === "panel" ? "push-panel" : "sidebar-actions"}>
       {installEvent && (
-        <button type="button" className="side-btn" onClick={install}>
+        <button type="button" className={"side-btn" + (variant === "panel" ? " side-btn-light" : "")} onClick={install}>
           <span className="sidebar-icon"><DownloadIcon /></span>
           <span>Pasang aplikasi</span>
         </button>
@@ -111,18 +111,18 @@ export default function PushToggle() {
           type="button"
           role="switch"
           aria-checked={state === "on"}
-          className={"side-btn" + (state === "on" ? " is-on" : "")}
+          className={"side-btn" + (variant === "panel" ? " side-btn-light" : "") + (state === "on" ? " is-on" : "")}
           onClick={toggle}
           disabled={!canToggle || busy}
         >
           <span className="sidebar-icon"><BellIcon /></span>
-          <span className="side-btn-text">{busy ? "Memproses..." : "Notifikasi"}</span>
+          <span className="side-btn-text">{busy ? "Memproses..." : variant === "panel" ? "Kirim notifikasi ke perangkat ini" : "Notifikasi"}</span>
           <span className="switch" aria-hidden="true"><span className="switch-knob" /></span>
         </button>
       )}
 
-      {hint && <p className="side-hint">{hint}</p>}
-      {error && <p className="side-hint side-hint-error">{error}</p>}
+      {hint && <p className={"side-hint" + (variant === "panel" ? " side-hint-light" : "")}>{hint}</p>}
+      {error && <p className={"side-hint side-hint-error" + (variant === "panel" ? " side-hint-light" : "")}>{error}</p>}
     </div>
   );
 }

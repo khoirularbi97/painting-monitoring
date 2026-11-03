@@ -61,3 +61,15 @@ export function localISO(date = new Date()) {
   const d = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${m}-${d}`;
 }
+
+// "baru saja", "5 menit lalu", "3 jam lalu", selebihnya "02 Nov 2026, 14:30"
+export function waktuRelatif(isoString, now = Date.now()) {
+  const t = new Date(isoString);
+  if (Number.isNaN(t.getTime())) return "";
+  const detik = Math.max(0, Math.floor((now - t.getTime()) / 1000));
+  if (detik < 60) return "baru saja";
+  if (detik < 3600) return `${Math.floor(detik / 60)} menit lalu`;
+  if (detik < 86400) return `${Math.floor(detik / 3600)} jam lalu`;
+  const jam = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  return `${formatTanggalPendek(localISO(t))}, ${jam}`;
+}

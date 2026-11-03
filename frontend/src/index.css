@@ -68,11 +68,32 @@ body {
   min-height: 100vh;
 }
 
+.main-col {
+  flex: 1;
+  min-width: 0;
+  max-width: 1280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 60px;
+  padding: 0 40px;
+  background: rgba(242, 244, 249, 0.9);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
 .main {
   flex: 1;
   min-width: 0;
-  padding: 32px 40px 56px;
-  max-width: 1280px;
+  padding: 8px 40px 56px;
 }
 
 .page-head {
@@ -281,6 +302,141 @@ body {
   color: #8f98bd;
 }
 .side-hint-error { color: #ff9aa9; }
+
+
+/* ---------- Lonceng & panel notifikasi ---------- */
+
+.bell { position: relative; }
+.bell-mobile { display: none; }
+
+.bell-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.bell-btn:hover,
+.bell-btn.is-open { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ng);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg-page);
+}
+
+.notif-panel {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 410px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 56px -16px rgba(22, 27, 51, 0.35);
+  overflow: hidden;
+  text-align: left;
+  color: var(--ink-primary);
+}
+
+.notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.notif-title { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.notif-count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.notif-list { max-height: min(420px, 60vh); overflow-y: auto; }
+.notif-empty { margin: 0; padding: 28px 22px; font-size: 13px; line-height: 1.55; color: var(--ink-muted); text-align: center; }
+
+.notif-item {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  font-family: var(--font-sans);
+  color: var(--ink-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.notif-item:last-child { border-bottom: 0; }
+.notif-item:hover { background: var(--bg-subtle); }
+.notif-item.is-unread { background: #f3f5ff; }
+.notif-item.is-unread:hover { background: #eaeeff; }
+
+.notif-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.notif-icon-produksi { background: var(--accent-soft); color: var(--accent-dark); }
+.notif-icon-repair { background: var(--comp-bg); color: var(--comp); }
+
+.notif-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notif-item-title { font-size: 13.5px; font-weight: 650; }
+.notif-item.is-unread .notif-item-title::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+.notif-item-body { font-size: 12.5px; line-height: 1.5; color: var(--ink-secondary); white-space: pre-line; overflow-wrap: anywhere; }
+.notif-time { margin-top: 2px; font-size: 11.5px; color: var(--ink-muted); }
+
+.notif-foot { padding: 8px 10px; border-top: 1px solid var(--border); background: var(--bg-subtle); }
+
+/* Saklar push di dalam panel (tema terang) */
+.push-panel { display: flex; flex-direction: column; gap: 2px; }
+.side-btn-light { color: var(--ink-secondary); padding: 9px 10px; font-size: 13px; }
+.side-btn-light:hover:not(:disabled) { color: var(--ink-primary); background: #eceffa; }
+.side-btn-light.is-on { color: var(--ink-primary); }
+.side-btn-light .switch { background: #c7cde0; }
+.side-btn-light.is-on .switch { background: var(--accent); }
+.side-hint-light { color: var(--ink-muted); }
+.side-hint-light.side-hint-error { color: var(--ng); }
 
 /* ---------- Kartu & judul bagian ---------- */
 
@@ -779,7 +935,8 @@ tr.row-total td { font-weight: 700; background: var(--bg-subtle); }
    ========================================================================== */
 
 @media (max-width: 900px) {
-  .main { padding: 24px 24px 48px; }
+  .main { padding: 8px 24px 48px; }
+  .topbar { padding: 0 24px; }
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -830,7 +987,28 @@ tr.row-total td { font-weight: 700; background: var(--bg-subtle); }
   .sidebar-nav.is-open { display: flex; }
   .sidebar-link.active::before { left: -8px; }
 
-  .main { padding: 18px 14px 40px; max-width: 100%; }
+  .topbar { display: none; }
+  .bell-desktop { display: none; }
+  .bell-mobile { display: block; }
+  .bell-mobile .bell-btn {
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .bell-mobile .bell-btn:hover,
+  .bell-mobile .bell-btn.is-open { background: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.24); color: #fff; }
+  .bell-mobile .bell-badge { box-shadow: 0 0 0 2px var(--bg-sidebar); }
+  .bell-mobile .notif-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+  .main-col { max-width: 100%; }
+  .main { padding: 18px 14px 40px; }
   .page-title { font-size: 21px; }
   .page-subtitle { margin-bottom: 16px; }
   .today-chip { align-items: flex-start; }

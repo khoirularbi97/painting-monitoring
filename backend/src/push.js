@@ -66,27 +66,44 @@ export async function notifyAll(payload, excludeEndpoint) {
   }
 }
 
-export function notifyProduksi(row, excludeEndpoint) {
-  const persenOk = row.total_part ? Math.round((row.total_ok / row.total_part) * 1000) / 10 : 0;
-  return notifyAll(
-    {
-      title: "Produksi baru diinput",
-      body: `${row.nama_line} · ${row.nama_shift} · ${row.nama_customer}\n${formatTanggal(row.tanggal)}\nPart ${row.total_part}, OK ${row.total_ok} (${persenOk}%), Compound ${row.total_comp}, NG ${row.total_ng}`,
-      url: "/#/",
-      tag: `produksi-${row.id}`,
-    },
-    excludeEndpoint
-  );
+// Simpan ke riwayat (panel lonceng). Berjalan walau push belum dikonfigurasi,
+// dan tidak pernah melempar error supaya penyimpanan data tidak terganggu.
+const MAX_RIWAYAT = 200;
+async function record(type, payload, refId) {
+  try {
+    await query(
+      "INSERT INTO notifications (type, title, body, url, ref_id) VALUES ($1,$2,$3,$4,$5)",
+      [type, payload.title, payload.body, payload.url, refId]
+    );
+    await query(
+      `DELETE FROM notifications
+       WHERE id < COALESCE((SELECT MIN(id) FROM (SELECT id FROM notifications ORDER BY id DESC LIMIT $1) t), 0)`,
+      [MAX_RIWAYAT]
+    );
+  } catch (err) {
+    console.error("Catat notifikasi gagal:", err.message);
+  }
 }
 
-export function notifyRepair(row, excludeEndpoint) {
-  return notifyAll(
-    {
-      title: "Hasil repair diinput",
-      body: `${row.nama_line} · ${row.nama_shift} · ${row.nama_customer}\nProduksi ${formatTanggal(row.tanggal_produksi)}\nDiproses ${row.total_comp_diproses}, OK ${row.total_hasil_ok}, NG ${row.total_hasil_ng}`,
-      url: "/#/kelola-data",
-      tag: `repair-${row.id}`,
-    },
-    excludeEndpoint
-  );
+export async function notifyProduksi(row, excludeEndpoint) {
+  const persenOk = row.total_part ? Math.round((row.total_ok / row.total_part) * 1000) / 10 : 0;
+  const payload = {
+    title: "Produksi baru diinput",
+    body: `${row.nama_line} · ${row.nama_shift} · ${row.nama_customer}\n${formatTanggal(row.tanggal)}\nPart ${row.total_part}, OK ${row.total_ok} (${persenOk}%), Compound ${row.total_comp}, NG ${row.total_ng}`,
+    url: "/#/",
+    tag: `produksi-${row.id}`,
+  };
+  await record("produksi", payload, row.id);
+  return notifyAll(payload, excludeEndpoint);
+}
+
+export async function notifyRepair(row, excludeEndpoint) {
+  const payload = {
+    title: "Hasil repair diinput",
+    body: `${row.nama_line} · ${row.nama_shift} · ${row.nama_customer}\nProduksi ${formatTanggal(row.tanggal_produksi)}\nDiproses ${row.total_comp_diproses}, OK ${row.total_hasil_ok}, NG ${row.total_hasil_ng}`,
+    url: "/#/kelola-data",
+    tag: `repair-${row.id}`,
+  };
+  await record("repair", payload, row.id);
+  return notifyAll(payload, excludeEndpoint);
 }

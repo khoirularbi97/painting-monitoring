@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import PushToggle from "./PushToggle.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 // Ikon garis tipis (stroke) supaya tampil konsisten di semua perangkat.
 const icons = {
@@ -43,6 +43,7 @@ export default function Sidebar() {
           <div className="sidebar-title">Monitoring Painting</div>
           <div className="sidebar-sub">PT Sanly Industries</div>
         </div>
+        <NotificationBell className="bell-mobile" />
         <button
           type="button"
           className={"mobile-menu-toggle" + (mobileOpen ? " is-open" : "")}
@@ -69,7 +70,6 @@ export default function Sidebar() {
             <span>{item.label}</span>
           </NavLink>
         ))}
-        <PushToggle />
       </nav>
     </aside>
   );

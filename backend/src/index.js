@@ -7,6 +7,7 @@ import produksiRoutes from "./routes/produksi.js";
 import repairRoutes from "./routes/repair.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import pushRoutes from "./routes/push.js";
+import notifikasiRoutes from "./routes/notifikasi.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/api/produksi", produksiRoutes);
 app.use("/api/repair", repairRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/push", pushRoutes);
+app.use("/api/notifikasi", notifikasiRoutes);
 
 
 
