@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { query, pool } from "../db.js";
+import { notifyProduksi } from "../push.js";
 
 const router = Router();
 
@@ -73,7 +74,18 @@ router.post("/", async (req, res) => {
        RETURNING *`,
       [tanggal, line_id, shift_id, customer_id, leader_id || null, total_part, total_ok, total_comp, total_ng, total_hanger, input_by || null]
     );
-    res.status(201).json(result.rows[0]);
+    const row = result.rows[0];
+    res.status(201).json(row);
+
+    // Notifikasi dikirim setelah respons, tanpa menunggu dan tanpa memengaruhi hasil simpan.
+    query(
+      `SELECT l.nama_line, s.nama_shift, c.nama_customer
+       FROM m_line l, m_shift s, m_customer c
+       WHERE l.id = $1 AND s.id = $2 AND c.id = $3`,
+      [row.line_id, row.shift_id, row.customer_id]
+    )
+      .then((r) => notifyProduksi({ ...row, ...r.rows[0] }, req.get("x-push-endpoint")))
+      .catch((e) => console.error("Notifikasi produksi gagal:", e.message));
   } catch (err) {
     if (err.code === "23505") {
       return res.status(409).json({

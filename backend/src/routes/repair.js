@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { query } from "../db.js";
+import { notifyRepair } from "../push.js";
 
 const router = Router();
 
@@ -40,7 +41,21 @@ router.post("/", async (req, res) => {
     [produksi_id, tanggal_repair, total_comp_diproses, total_hasil_ok, total_hasil_ng]
   );
 
-  res.status(201).json(result.rows[0]);
+  const row = result.rows[0];
+  res.status(201).json(row);
+
+  // Notifikasi dikirim setelah respons, tanpa menunggu dan tanpa memengaruhi hasil simpan.
+  query(
+    `SELECT p.tanggal AS tanggal_produksi, l.nama_line, s.nama_shift, c.nama_customer
+     FROM produksi_painting p
+     JOIN m_line l ON p.line_id = l.id
+     JOIN m_shift s ON p.shift_id = s.id
+     JOIN m_customer c ON p.customer_id = c.id
+     WHERE p.id = $1`,
+    [produksi_id]
+  )
+    .then((r) => notifyRepair({ ...row, ...r.rows[0] }, req.get("x-push-endpoint")))
+    .catch((e) => console.error("Notifikasi repair gagal:", e.message));
 });
 
 // GET /api/repair — daftar semua hasil repair, lengkap dengan info produksi asal

@@ -169,6 +169,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  min-height: 0;
 }
 
 .sidebar-link {
@@ -216,6 +218,69 @@ body {
 }
 
 .mobile-menu-toggle { display: none; }
+
+/* ---------- Pasang aplikasi & notifikasi (sidebar) ---------- */
+
+.sidebar-actions {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.side-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #aab2d0;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.side-btn:hover:not(:disabled) { color: #fff; background: rgba(255, 255, 255, 0.05); }
+.side-btn:disabled { cursor: default; opacity: 0.6; }
+.side-btn.is-on { color: #fff; }
+.side-btn-text { flex: 1; }
+
+.switch {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.18s ease;
+}
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s ease;
+}
+.side-btn.is-on .switch { background: #4f63e6; }
+.side-btn.is-on .switch-knob { transform: translateX(14px); }
+
+.side-hint {
+  margin: 2px 4px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8f98bd;
+}
+.side-hint-error { color: #ff9aa9; }
 
 /* ---------- Kartu & judul bagian ---------- */
 
@@ -760,7 +825,8 @@ tr.row-total td { font-weight: 700; background: var(--bg-subtle); }
   .mobile-menu-toggle.is-open span:nth-child(2) { opacity: 0; }
   .mobile-menu-toggle.is-open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-  .sidebar-nav { display: none; padding: 6px 0 8px; }
+  .sidebar-nav { display: none; padding: 6px 0 8px; flex: none; }
+  .sidebar-actions { margin-top: 8px; }
   .sidebar-nav.is-open { display: flex; }
   .sidebar-link.active::before { left: -8px; }
 

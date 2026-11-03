@@ -6,6 +6,7 @@ import masterRoutes from "./routes/master.js";
 import produksiRoutes from "./routes/produksi.js";
 import repairRoutes from "./routes/repair.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import pushRoutes from "./routes/push.js";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use("/api/master", masterRoutes);
 app.use("/api/produksi", produksiRoutes);
 app.use("/api/repair", repairRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/push", pushRoutes);
 
 
 
