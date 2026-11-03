@@ -40,7 +40,7 @@ export default function Sidebar() {
         </div>
         <div className="sidebar-brand">
           <div className="sidebar-title">Monitoring Painting</div>
-          <div className="sidebar-sub">PT Sanly Industries</div>
+          <div className="sidebar-sub">PT X</div>
         </div>
         <button
           type="button"
