@@ -53,3 +53,11 @@ export function formatTanggalTick(value) {
   if (!p) return value ?? "";
   return `${HARI_SINGKAT[p.weekday]} ${String(p.day).padStart(2, "0")}/${String(p.month + 1).padStart(2, "0")}`;
 }
+
+// Tanggal lokal "YYYY-MM-DD". Jangan pakai toISOString(): itu memakai UTC, sehingga di WIB
+// antara pukul 00:00 dan 07:00 hasilnya mundur satu hari.
+export function localISO(date = new Date()) {
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${m}-${d}`;
+}

@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import PaginatedTable from "../components/PaginatedTable.jsx";
 import Tanggal from "../components/Tanggal.jsx";
 import { api, extractErrors } from "../lib/api.js";
-import { formatTanggal, isMinggu } from "../lib/format.js";
+import { formatTanggal, isMinggu, localISO } from "../lib/format.js";
 
 export default function InputRepair() {
   const [menunggu, setMenunggu] = useState([]);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({
-    tanggal_repair: new Date().toISOString().slice(0, 10),
+    tanggal_repair: localISO(),
     total_comp_diproses: "",
     total_hasil_ok: "",
     total_hasil_ng: "",
