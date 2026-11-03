@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import PaginatedTable from "../components/PaginatedTable.jsx";
+import Tanggal from "../components/Tanggal.jsx";
 import { api, extractErrors } from "../lib/api.js";
+import { formatTanggal, isMinggu } from "../lib/format.js";
 
 export default function InputRepair() {
   const [menunggu, setMenunggu] = useState([]);
@@ -53,25 +55,27 @@ export default function InputRepair() {
       <p className="page-subtitle">Hasil repair Compound dari Dept PE — bisa diinput bertahap</p>
 
       <div className="card" style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Menunggu repair</p>
+        <div className="card-head">
+          <p className="card-title">Menunggu repair</p>
+        </div>
         {menunggu.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>Tidak ada Compound yang menunggu repair.</p>
+          <p className="empty-note">Tidak ada Compound yang menunggu repair.</p>
         ) : (
-          <PaginatedTable rows={menunggu} defaultPageSize={10} searchable searchKeys={["tanggal", "nama_line", "nama_shift", "nama_customer", "nama_leader", "leader", "sisa_belum_repair"]} searchPlaceholder="Cari tanggal, line, leader...">
+          <PaginatedTable rows={menunggu} defaultPageSize={10} searchable searchKeys={["tanggal", "nama_line", "nama_shift", "nama_customer", "nama_leader", "leader", "sisa_belum_repair"]} searchPlaceholder="Cari tanggal, hari, line, leader...">
             {(currentRows) => (
               <table>
                 <thead>
-                  <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th>Sisa</th><th></th></tr>
+                  <tr><th>Tanggal</th><th>Line</th><th>Shift</th><th>Customer</th><th style={{ textAlign: "right" }}>Sisa</th><th></th></tr>
                 </thead>
                 <tbody>
                   {currentRows.map((m) => (
-                    <tr key={m.produksi_id} style={selected?.produksi_id === m.produksi_id ? { background: "#f0f6fb" } : {}}>
-                      <td>{m.tanggal}</td>
+                    <tr key={m.produksi_id} className={selected?.produksi_id === m.produksi_id ? "row-selected" : ""}>
+                      <td><Tanggal value={m.tanggal} /></td>
                       <td>{m.nama_line}</td>
                       <td>{m.nama_shift}</td>
                       <td>{m.nama_customer}</td>
-                      <td>{m.sisa_belum_repair}</td>
-                      <td><button type="button" className="btn-ghost" onClick={() => { setSelected(m); setSuccess(false); }}>Pilih</button></td>
+                      <td className="num">{m.sisa_belum_repair}</td>
+                      <td><div className="row-actions"><button type="button" className="btn-ghost" onClick={() => { setSelected(m); setSuccess(false); }}>Pilih</button></div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -81,25 +85,30 @@ export default function InputRepair() {
         )}
       </div>
 
-      <div className="card" style={{ maxWidth: 480 }}>
+      <div className="card" style={{ maxWidth: 520 }}>
         {success && <div className="alert-success">Hasil repair berhasil disimpan.</div>}
         {errors.length > 0 && (
           <div className="alert-error">{errors.map((e, i) => <div key={i}>{e}</div>)}</div>
         )}
 
         {!selected ? (
-          <p style={{ fontSize: 13, color: "var(--ink-muted)" }}>Pilih salah satu data di tabel atas untuk mulai input.</p>
+          <p className="empty-note">Pilih salah satu data di tabel atas untuk mulai input.</p>
         ) : (
           <form onSubmit={handleSubmit}>
-            <p style={{ fontSize: 13, marginBottom: 14 }}>
-              {selected.nama_line} · {selected.nama_shift} · {selected.nama_customer} · {selected.nama_leader ?? selected.leader ?? "-"} · {selected.tanggal}
-              <br />
-              <span style={{ color: "var(--ink-secondary)" }}>Sisa belum direpair: {sisa}</span>
-            </p>
+            <div className="edit-panel" style={{ marginBottom: 16 }}>
+              <strong>{selected.nama_line} · {selected.nama_shift} · {selected.nama_customer}</strong>
+              <div className="card-note">
+                {selected.nama_leader ?? selected.leader ?? "-"} · produksi {formatTanggal(selected.tanggal)}
+              </div>
+              <div className="card-note">Sisa belum direpair: <strong style={{ color: "var(--ink-primary)" }}>{sisa}</strong></div>
+            </div>
 
             <div className="field">
               <label>Tanggal repair</label>
               <input type="date" value={form.tanggal_repair} onChange={(e) => setForm({ ...form, tanggal_repair: e.target.value })} required />
+              {form.tanggal_repair && (
+                <span className={"field-hint" + (isMinggu(form.tanggal_repair) ? " is-minggu" : "")}>{formatTanggal(form.tanggal_repair)}</span>
+              )}
             </div>
             <div className="field">
               <label>Total compound diproses</label>

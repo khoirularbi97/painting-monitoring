@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -9,6 +10,8 @@ import {
   YAxis,
 } from "recharts";
 import PaginatedTable from "../components/PaginatedTable.jsx";
+import Tanggal from "../components/Tanggal.jsx";
+import { formatTanggal, formatTanggalTick, namaHari } from "../lib/format.js";
 import { api, extractErrors } from "../lib/api.js";
 import { exportToExcel, exportToPDF } from "../lib/export.js";
 
@@ -44,9 +47,9 @@ function EditProduksiForm({ row, lines, shifts, customers, leaders, onCancel, on
   }
 
   return (
-    <tr>
+    <tr className="row-editing">
       <td colSpan={8}>
-        <form onSubmit={handleSubmit} style={{ padding: 12, background: "#f7f8f7", borderRadius: 6 }}>
+        <form onSubmit={handleSubmit} className="edit-panel">
           {errors.length > 0 && (
             <div className="alert-error">{errors.map((e, i) => <div key={i}>{e}</div>)}</div>
           )}
@@ -102,7 +105,7 @@ function EditProduksiForm({ row, lines, shifts, customers, leaders, onCancel, on
             <label>Total hanger</label>
             <input type="number" value={form.total_hanger} onChange={(e) => setForm({ ...form, total_hanger: e.target.value })} />
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="row-actions" style={{ justifyContent: "flex-start" }}>
             <button className="btn" type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</button>
             <button className="btn-ghost" type="button" onClick={onCancel}>Batal</button>
           </div>
@@ -137,9 +140,9 @@ function EditRepairForm({ row, onCancel, onSaved }) {
   }
 
   return (
-    <tr>
+    <tr className="row-editing">
       <td colSpan={6}>
-        <form onSubmit={handleSubmit} style={{ padding: 12, background: "#f7f8f7", borderRadius: 6 }}>
+        <form onSubmit={handleSubmit} className="edit-panel">
           {errors.length > 0 && (
             <div className="alert-error">{errors.map((e, i) => <div key={i}>{e}</div>)}</div>
           )}
@@ -161,7 +164,7 @@ function EditRepairForm({ row, onCancel, onSaved }) {
               <input type="number" value={form.total_hasil_ng} onChange={(e) => setForm({ ...form, total_hasil_ng: e.target.value })} />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="row-actions" style={{ justifyContent: "flex-start" }}>
             <button className="btn" type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</button>
             <button className="btn-ghost" type="button" onClick={onCancel}>Batal</button>
           </div>
@@ -277,75 +280,79 @@ export default function KelolaData() {
       <h1 className="page-title">Kelola data</h1>
       <p className="page-subtitle">Edit atau hapus data produksi dan hasil repair yang sudah diinput</p>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="grid-4">
-          <div className="field" style={{ marginBottom: 0 }}>
+      <div className="card">
+        <div className="filters">
+          <div className="field">
             <label>Line</label>
             <select value={filters.line_id} onChange={(e) => setFilters({ ...filters, line_id: e.target.value })}>
               <option value="">Semua</option>
               {lines.map((l) => <option key={l.id} value={l.id}>{l.nama_line}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label>Shift</label>
             <select value={filters.shift_id} onChange={(e) => setFilters({ ...filters, shift_id: e.target.value })}>
               <option value="">Semua</option>
               {shifts.map((s) => <option key={s.id} value={s.id}>{s.nama_shift}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label>Customer</label>
             <select value={filters.customer_id} onChange={(e) => setFilters({ ...filters, customer_id: e.target.value })}>
               <option value="">Semua</option>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label>Leader</label>
             <select value={filters.leader_id} onChange={(e) => setFilters({ ...filters, leader_id: e.target.value })}>
               <option value="">Semua</option>
               {leaders.map((ld) => <option key={ld.id} value={ld.id}>{ld.nama_leader}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0, display: "flex", gap: 6 }}>
-            <div style={{ flex: 1 }}>
-              <label>Dari tanggal</label>
-              <input type="date" value={filters.start} onChange={(e) => setFilters({ ...filters, start: e.target.value })} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label>Sampai</label>
-              <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
-            </div>
+          <div className="field">
+            <label>Dari tanggal</label>
+            <input type="date" value={filters.start} onChange={(e) => setFilters({ ...filters, start: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Sampai tanggal</label>
+            <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
           </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <button
-          className={tab === "produksi" ? "btn" : "btn-ghost"}
-          onClick={() => { setTab("produksi"); setEditingId(null); }}
-        >
-          Data produksi
-        </button>
-        <button
-          className={tab === "repair" ? "btn" : "btn-ghost"}
-          onClick={() => { setTab("repair"); setEditingId(null); }}
-        >
-          Data repair
-        </button>
-        <div style={{ flex: 1 }} />
+      <div className="toolbar">
+        <div className="seg" role="tablist">
+          <button
+            role="tab"
+            aria-selected={tab === "produksi"}
+            className={"seg-item" + (tab === "produksi" ? " active" : "")}
+            onClick={() => { setTab("produksi"); setEditingId(null); }}
+          >
+            Data produksi
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === "repair"}
+            className={"seg-item" + (tab === "repair" ? " active" : "")}
+            onClick={() => { setTab("repair"); setEditingId(null); }}
+          >
+            Data repair
+          </button>
+        </div>
+        <div className="spacer" />
         <button className="btn-ghost" onClick={handleExportExcel}>Export Excel</button>
         <button className="btn-ghost" onClick={handleExportPDF}>Export PDF</button>
       </div>
 
       <div className="card">
         {loading ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
+          <p className="empty-note">Memuat data...</p>
         ) : tab === "produksi" ? (
           produksiRows.length === 0 ? (
-            <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data produksi.</p>
+            <p className="empty-note">Belum ada data produksi.</p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div>
               <PaginatedTable
                 rows={produksiRows}
                 defaultPageSize={10}
@@ -360,7 +367,7 @@ export default function KelolaData() {
                   "total_part",
                   "persen_ok_final",
                 ]}
-                searchPlaceholder="Cari tanggal, line, leader, part..."
+                searchPlaceholder="Cari tanggal, hari, line, leader..."
               >
                 {(currentRows) => (
                   <table>
@@ -384,16 +391,18 @@ export default function KelolaData() {
                           />
                         ) : (
                           <tr key={r.produksi_id}>
-                            <td>{r.tanggal}</td>
+                            <td><Tanggal value={r.tanggal} /></td>
                             <td>{r.nama_line}</td>
                             <td>{r.nama_shift}</td>
                             <td>{r.nama_customer}</td>
                             <td>{r.nama_leader ?? r.leader ?? "-"}</td>
                             <td className="num">{r.total_part}</td>
                             <td className="num">{r.persen_ok_final}%</td>
-                            <td style={{ display: "flex", gap: 6 }}>
-                              <button className="btn-ghost" onClick={() => setEditingId(`p-${r.produksi_id}`)}>Edit</button>
-                              <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteProduksi(r.produksi_id)}>Hapus</button>
+                            <td>
+                              <div className="row-actions">
+                                <button className="btn-ghost" onClick={() => setEditingId(`p-${r.produksi_id}`)}>Edit</button>
+                                <button className="btn-ghost btn-danger" onClick={() => handleDeleteProduksi(r.produksi_id)}>Hapus</button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -405,10 +414,10 @@ export default function KelolaData() {
             </div>
           )
         ) : repairRows.length === 0 ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data repair.</p>
+          <p className="empty-note">Belum ada data repair.</p>
         ) : (
           <div>
-            <div className="grid-3" style={{ marginBottom: 16 }}>
+            <div className="grid-3" style={{ marginBottom: 18 }}>
               <div className="metric metric-success">
                 <p className="metric-label">Total OK repair</p>
                 <p className="metric-value">{totalRepairOk.toLocaleString("id-ID")}</p>
@@ -417,29 +426,30 @@ export default function KelolaData() {
                 <p className="metric-label">Total NG repair</p>
                 <p className="metric-value">{totalRepairNg.toLocaleString("id-ID")}</p>
               </div>
-              <div className="metric metric-warn">
+              <div className="metric metric-warning">
                 <p className="metric-label">Total compound diproses</p>
                 <p className="metric-value">{totalCompDiproses.toLocaleString("id-ID")}</p>
               </div>
             </div>
 
-            <div className="card" style={{ marginBottom: 16, padding: 14 }}>
-              <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Trend hasil repair</p>
+            <div style={{ marginBottom: 18 }}>
+              <p className="card-title" style={{ marginBottom: 12 }}>Tren hasil repair</p>
               <div style={{ width: "100%", height: 260 }}>
                 <ResponsiveContainer>
-                  <LineChart data={repairChartData}>
-                    <CartesianGrid stroke="#e1e0d9" vertical={false} />
-                    <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="ok_repair" name="OK repair" stroke="#2e7d46" strokeWidth={2.2} dot={{ r: 3 }} />
-                    <Line type="monotone" dataKey="ng_repair" name="NG repair" stroke="#b23a2e" strokeWidth={2.2} dot={{ r: 3 }} />
+                  <LineChart data={repairChartData} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid stroke="#e9ecf4" vertical={false} />
+                    <XAxis dataKey="tanggal" tickFormatter={formatTanggalTick} tick={{ fontSize: 11.5 }} tickLine={false} axisLine={{ stroke: "#d2d7e6" }} minTickGap={18} />
+                    <YAxis tick={{ fontSize: 11.5 }} tickLine={false} axisLine={false} width={42} />
+                    <Tooltip labelFormatter={formatTanggal} contentStyle={{ borderRadius: 10, border: "1px solid #e4e7f1", boxShadow: "0 10px 28px -10px rgba(22,27,51,0.22)", fontSize: 12.5 }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12.5 }} />
+                    <Line type="monotone" dataKey="ok_repair" name="OK repair" stroke="#12804a" strokeWidth={2.5} dot={{ r: 2.5 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="ng_repair" name="NG repair" stroke="#bf3049" strokeWidth={2.5} dot={{ r: 2.5 }} activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
+            <div>
               <PaginatedTable
                 rows={repairRows}
                 defaultPageSize={10}
@@ -480,14 +490,19 @@ export default function KelolaData() {
                           />
                         ) : (
                           <tr key={r.id}>
-                            <td>{r.tanggal_repair}</td>
-                            <td>{r.nama_line} · {r.nama_shift} · {r.nama_customer} · {r.nama_leader ?? r.leader ?? "-"} . {r.tanggal_produksi}</td>
+                            <td><Tanggal value={r.tanggal_repair} /></td>
+                            <td className="wrap">
+                              <div>{r.nama_line} · {r.nama_shift} · {r.nama_customer}</div>
+                              <div className="card-note">{r.nama_leader ?? r.leader ?? "-"} · produksi {namaHari(r.tanggal_produksi)}, {r.tanggal_produksi}</div>
+                            </td>
                             <td className="num">{r.total_comp_diproses}</td>
                             <td className="num">{r.total_hasil_ok}</td>
                             <td className="num">{r.total_hasil_ng}</td>
-                            <td style={{ display: "flex", gap: 6 }}>
-                              <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
-                              <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
+                            <td>
+                              <div className="row-actions">
+                                <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
+                                <button className="btn-ghost btn-danger" onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
+                              </div>
                             </td>
                           </tr>
                         )

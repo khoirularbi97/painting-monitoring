@@ -6,6 +6,8 @@ import {
 import { api } from "../lib/api.js";
 import { exportToExcel, exportToPDF, captureChartImage } from "../lib/export.js";
 import PaginatedTable from "../components/PaginatedTable.jsx";
+import Tanggal from "../components/Tanggal.jsx";
+import { formatTanggal, formatTanggalTick } from "../lib/format.js";
 
 const EXPORT_COLUMNS = [
   { key: "tanggal", label: "Tanggal" },
@@ -24,6 +26,49 @@ const EXPORT_COLUMNS = [
   { key: "persen_ok_final", label: "%OK Final" },
   { key: "efisiensi_hanger", label: "Eff. Hanger" },
 ];
+
+const TOOLTIP_STYLE = {
+  borderRadius: 10,
+  border: "1px solid #e4e7f1",
+  boxShadow: "0 10px 28px -10px rgba(22, 27, 51, 0.22)",
+  background: "rgba(255,255,255,0.98)",
+  fontSize: 12.5,
+};
+
+function MatrixTable({ matrix, shiftNames, empty }) {
+  if (matrix.length === 0) return <p className="empty-note">{empty}</p>;
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Line</th>
+            {shiftNames.map((shift) => <th key={shift} style={{ textAlign: "right" }}>{shift}</th>)}
+            <th style={{ textAlign: "right" }}>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.map((row) => (
+            <tr key={row.line} className={row.line === "TOTAL" ? "row-total" : ""}>
+              <td>{row.line === "TOTAL" ? "Total" : row.line}</td>
+              {shiftNames.map((shift) => (
+                <td key={shift} className="num">{Number(row[shift] || 0).toLocaleString("id-ID")}</td>
+              ))}
+              <td className="num" style={{ fontWeight: 700 }}>{Number(row.total || 0).toLocaleString("id-ID")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function todayISO() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
 
 export default function Dashboard() {
   const [lines, setLines] = useState([]);
@@ -340,33 +385,41 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="page-title">Dashboard performa painting</h1>
-      <p className="page-subtitle">Tren %OK sebelum dan sesudah repair, per line/shift/customer</p>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Dashboard performa painting</h1>
+          <p className="page-subtitle">Tren %OK sebelum dan sesudah repair, per line, shift, dan customer</p>
+        </div>
+        <div className="today-chip">
+          <small>Hari ini</small>
+          <strong>{formatTanggal(todayISO())}</strong>
+        </div>
+      </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="grid-4">
-          <div className="field" style={{ marginBottom: 0 }}>
+      <div className="card">
+        <div className="filters">
+          <div className="field">
             <label>Line</label>
             <select value={filters.line_id} onChange={(e) => setFilters({ ...filters, line_id: e.target.value })}>
               <option value="">Semua</option>
               {lines.map((l) => <option key={l.id} value={l.id}>{l.nama_line}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label>Shift</label>
             <select value={filters.shift_id} onChange={(e) => setFilters({ ...filters, shift_id: e.target.value })}>
               <option value="">Semua</option>
               {shifts.map((s) => <option key={s.id} value={s.id}>{s.nama_shift}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label>Customer</label>
             <select value={filters.customer_id} onChange={(e) => setFilters({ ...filters, customer_id: e.target.value })}>
               <option value="">Semua</option>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.nama_customer}</option>)}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field">
             <label>Leader</label>
             <select value={filters.leader_id} onChange={(e) => setFilters({ ...filters, leader_id: e.target.value })}>
               <option value="">Semua</option>
@@ -374,26 +427,24 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div className="field" style={{ marginBottom: 0, display: "flex", gap: 6 }}>
-            <div style={{ flex: 1 }}>
-              <label>Dari tanggal</label>
-              <input type="date" value={filters.start} onChange={(e) => setFilters({ ...filters, start: e.target.value })} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label>Sampai</label>
-              <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
-            </div>
+          <div className="field">
+            <label>Dari tanggal</label>
+            <input type="date" value={filters.start} onChange={(e) => setFilters({ ...filters, start: e.target.value })} />
+          </div>
+          <div className="field">
+            <label>Sampai tanggal</label>
+            <input type="date" value={filters.end} onChange={(e) => setFilters({ ...filters, end: e.target.value })} />
           </div>
         </div>
       </div>
 
       {/* Leader ranking & hanger per shift summary */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 ,marginBottom: 16}}>
+      <div className="stack">
         <div className="card">
           <div className="ranking-header">
             <p className="ranking-title">Ranking leader</p>
             <div className="controls">
-              <label style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Urutkan:</label>
+              <label>Urutkan:</label>
               <select value={rankingMetric} onChange={(e) => setRankingMetric(e.target.value)}>
                 <option value="avg_ok_final">%OK final (rata-rata)</option>
                 <option value="avg_comp">%Compound (rata-rata)</option>
@@ -402,12 +453,12 @@ export default function Dashboard() {
                 <option value="total_part">Total part</option>
                 <option value="total_hanger">Total hanger</option>
               </select>
-              <label style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Line</label>
+              <label>Line</label>
               <select value={rankingLineFilter} onChange={(e) => setRankingLineFilter(e.target.value)}>
                 <option value="">Semua</option>
                 {lines.map((ln) => <option key={ln.id} value={ln.id}>{ln.nama_line}</option>)}
               </select>
-              <label style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Tampilkan</label>
+              <label>Tampilkan</label>
               <select value={rankingLimit} onChange={(e) => setRankingLimit(Number(e.target.value))}>
                 <option value={5}>5</option>
                 <option value={8}>8</option>
@@ -462,27 +513,27 @@ export default function Dashboard() {
             </div>
           </div>
           {leaderRanking.length === 0 ? (
-            <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data leader.</p>
+            <p className="empty-note">Tidak ada data leader.</p>
           ) : (
             <ol className="ranking-list">
               {leaderRanking.slice(0, rankingLimit).map((l, idx) => (
                 <li key={l.name}>
-                  <div className="ranking-name">{idx + 1}. {l.name}</div>
+                  <div className="ranking-name"><span className="rank-no">{idx + 1}</span>{l.name}</div>
                   <div className="ranking-metric">
                     {rankingMetric === "avg_ok_final" ? (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.avg_ok_final}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.avg_ok_final}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
                     ) : rankingMetric === "avg_comp" ? (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.avg_comp}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.avg_comp}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
                     ) : rankingMetric === "avg_ok_awal" ? (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.avg_ok_awal}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.avg_ok_awal}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
                     ) : rankingMetric === "overall" ? (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.overall_score}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>score — {l.total_part.toLocaleString("id-ID")} part</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.overall_score}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>score — {l.total_part.toLocaleString("id-ID")} part</span></>
                     ) : rankingMetric === "total_hanger" ? (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
                     ) : rankingMetric === "total_part" ? (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.total_part.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_hanger.toLocaleString("id-ID")} hanger</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.total_part.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_hanger.toLocaleString("id-ID")} hanger</span></>
                     ) : (
-                      <><strong style={{ fontFamily: "var(--font-mono)", marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                      <><strong style={{ marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
                     )}
                   </div>
                 </li>
@@ -492,23 +543,24 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: "0 0 12px" }}>Perolehan hanger per shift</p>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginBottom: 8 }}>
-            <button className="btn-ghost" onClick={exportShiftHangerExcel}>Export Excel</button>
-            <button className="btn-ghost" onClick={exportShiftHangerPDF}>Export PDF</button>
+          <div className="card-head">
+            <p className="card-title">Perolehan hanger per shift</p>
+            <div className="card-actions">
+              <button className="btn-ghost" onClick={exportShiftHangerExcel}>Export Excel</button>
+              <button className="btn-ghost" onClick={exportShiftHangerPDF}>Export PDF</button>
+            </div>
           </div>
           {shiftHangerList.length === 0 ? (
-            <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data.</p>
+            <p className="empty-note">Tidak ada data.</p>
           ) : (
             <div style={{ width: "100%", height: 220 }}>
               <ResponsiveContainer>
                 <BarChart data={shiftHangerList} layout="vertical" margin={{ top: 6, right: 6, left: 6, bottom: 6 }}>
-                  <CartesianGrid stroke="#f0f2f4" vertical={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} />
-                  <YAxis type="category" dataKey="shift" tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(v) => v.toLocaleString("id-ID")} />
-                  <Legend />
-                  <Bar dataKey="total" name="Total hanger" fill="#2f6690" />
+                  <CartesianGrid stroke="#e9ecf4" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis type="category" dataKey="shift" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={80} />
+                  <Tooltip cursor={{ fill: "#f2f4f9" }} formatter={(v) => v.toLocaleString("id-ID")} contentStyle={TOOLTIP_STYLE} />
+                  <Bar dataKey="total" name="Total hanger" fill="#3347c9" radius={[0, 6, 6, 0]} barSize={22} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -516,82 +568,85 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="metrics-grid metrics-grid-5">
-        <div className="metric metric-success-soft" style={{ background: "#edf4eb", border: "1px solid #dfe9df" }}>
+      <div className="metrics-grid">
+        <div className="metric metric-success-soft">
           <p className="metric-label">Rata-rata %OK awal</p>
-          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgOkAwal}%</p>
+          <p className="metric-value">{avgOkAwal}%</p>
         </div>
-        <div className="metric metric-success" style={{ background: "#eaf8ee", border: "1px solid #d3eddd" }}>
+        <div className="metric metric-success">
           <p className="metric-label">Rata-rata %OK final</p>
-          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgOkFinal}%</p>
+          <p className="metric-value">{avgOkFinal}%</p>
         </div>
-        <div className="metric metric-warning" style={{ background: "#fff7dd", border: "1px solid #f5e4a0" }}>
+        <div className="metric metric-warning">
           <p className="metric-label">Rata-rata %Compound</p>
-          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgComp}%</p>
+          <p className="metric-value">{avgComp}%</p>
         </div>
-        <div className="metric metric-danger" style={{ background: "#fdecec", border: "1px solid #f6c8c8" }}>
+        <div className="metric metric-danger">
           <p className="metric-label">Rata-rata %NG final</p>
-          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{avgNgFinal}%</p>
+          <p className="metric-value">{avgNgFinal}%</p>
         </div>
-        <div className="metric metric-info" style={{ background: "#edf4ff", border: "1px solid #d9e8ff" }}>
+        <div className="metric metric-info">
           <p className="metric-label">Total part diproses</p>
-          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{totalPart.toLocaleString("id-ID")}</p>
+          <p className="metric-value">{totalPart.toLocaleString("id-ID")}</p>
         </div>
-        <div className="metric metric-orange" style={{ background: "#fff1e6", border: "1px solid #f7d7b8" }}>
+        <div className="metric metric-orange">
           <p className="metric-label">Total hanger</p>
-          <p className="metric-value" style={{ fontSize: 32, lineHeight: 1.2 }}>{totalHangerFiltered.toLocaleString("id-ID")}</p>
+          <p className="metric-value">{totalHangerFiltered.toLocaleString("id-ID")}</p>
         </div>
       </div>
 
       <div className="card dashboard-chart-card" ref={chartRef}>
+        <div className="card-head">
+          <div>
+            <p className="card-title">Tren persentase OK, Compound, dan NG</p>
+            <p className="card-note">Garis tipis untuk hasil awal, garis tebal untuk hasil akhir setelah repair</p>
+          </div>
+        </div>
         {loading ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
+          <p className="empty-note">Memuat data...</p>
         ) : data.length === 0 ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data produksi untuk filter ini.</p>
+          <p className="empty-note">Belum ada data produksi untuk filter ini.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={data}>
-              <CartesianGrid stroke="#e1e0d9" vertical={false} />
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke="#e9ecf4" vertical={false} />
               <XAxis
                 dataKey="tanggal"
-                tick={{ fontSize: 11 }}
+                tickFormatter={formatTanggalTick}
+                tick={{ fontSize: 11.5 }}
                 tickLine={false}
-                axisLine={{ stroke: "#dfeaf5" }}
-                minTickGap={14}
+                axisLine={{ stroke: "#d2d7e6" }}
+                minTickGap={18}
               />
               <YAxis
                 domain={[0, 100]}
                 tickFormatter={(v) => `${v}%`}
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 11.5 }}
                 tickLine={false}
-                axisLine={{ stroke: "#dfeaf5" }}
-                width={36}
+                axisLine={false}
+                width={42}
               />
               <Tooltip
-                formatter={(v) => `${v}%`}
-                contentStyle={{
-                  borderRadius: 12,
-                  border: "1px solid #dfeaf5",
-                  boxShadow: "0 10px 20px rgba(15, 23, 42, 0.08)",
-                  background: "rgba(255,255,255,0.96)",
-                }}
-                labelStyle={{ color: "#1a2430", fontWeight: 600 }}
+                formatter={(v, name) => [`${v}%`, name]}
+                labelFormatter={formatTanggal}
+                contentStyle={TOOLTIP_STYLE}
+                labelStyle={{ color: "#161b33", fontWeight: 650, marginBottom: 4 }}
               />
-              <Legend wrapperStyle={{ paddingTop: 12, fontSize: 12 }} />
-              <Line type="monotone" dataKey="persen_ok_awal" name="%OK awal" stroke="#BEE7C3" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_comp" name="%Compound" stroke="#F5D76A" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_ng_awal" name="%NG awal" stroke="#E88C8C" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#2FAE5E" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="persen_ng_final" name="%NG final" stroke="#D94F70" strokeWidth={2} dot={{ r: 3 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: 14, fontSize: 12.5 }} />
+              <Line type="monotone" dataKey="persen_ok_awal" name="%OK awal" stroke="#7cc79a" strokeWidth={1.75} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="persen_ok_final" name="%OK final" stroke="#12804a" strokeWidth={2.75} dot={{ r: 2.5 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="persen_comp" name="%Compound" stroke="#e3a82b" strokeWidth={2.25} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="persen_ng_awal" name="%NG awal" stroke="#ee9aa8" strokeWidth={1.75} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="persen_ng_final" name="%NG final" stroke="#bf3049" strokeWidth={2.75} dot={{ r: 2.5 }} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
       </div>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="dashboard-detail-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Detail data</p>
-          <div className="dashboard-detail-actions" style={{ display: "flex", gap: 8 }}>
+      <div className="card section">
+        <div className="dashboard-detail-header">
+          <p className="card-title">Detail data</p>
+          <div className="dashboard-detail-actions">
             <button
               className="btn-ghost"
               disabled={rows.length === 0}
@@ -653,11 +708,11 @@ export default function Dashboard() {
           </div>
         </div>
         {loadingRows ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
+          <p className="empty-note">Memuat data...</p>
         ) : rows.length === 0 ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Belum ada data untuk filter ini.</p>
+          <p className="empty-note">Belum ada data untuk filter ini.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div>
             <PaginatedTable
               rows={rows}
               defaultPageSize={10}
@@ -677,7 +732,7 @@ export default function Dashboard() {
                 "total_ng_final",
                 "persen_ok_final",
               ]}
-              searchPlaceholder="Cari tanggal, line, leader, part..."
+              searchPlaceholder="Cari tanggal, hari, line, leader..."
             >
               {(currentRows) => (
                 <table>
@@ -714,7 +769,7 @@ export default function Dashboard() {
 
                       return (
                         <tr key={r.produksi_id}>
-                          <td>{r.tanggal}</td>
+                          <td><Tanggal value={r.tanggal} /></td>
                           <td>{r.nama_line}</td>
                           <td>{r.nama_shift}</td>
                           <td>{r.nama_customer}</td>
@@ -742,84 +797,20 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* NG Matrix Section */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix NG</p>
-          <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total NG filter: {totalNgFiltered.toLocaleString("id-ID")}</span>
+      <div className="card section">
+        <div className="card-head">
+          <p className="card-title">Matrix NG</p>
+          <span className="card-note">Total NG sesuai filter: {totalNgFiltered.toLocaleString("id-ID")}</span>
         </div>
-        {ngMatrix.length === 0 ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data NG.</p>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
-                  {shiftNames.map((shift) => (
-                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
-                  ))}
-                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ngMatrix.map((row) => (
-                  <tr key={`${row.line}-ng`}>
-                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
-                    {shiftNames.map((shift) => (
-                      <td key={`${row.line}-${shift}-ng`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
-                        {Number(row[shift] || 0).toLocaleString("id-ID")}
-                      </td>
-                    ))}
-                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
-                      {Number(row.total || 0).toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <MatrixTable matrix={ngMatrix} shiftNames={shiftNames} empty="Tidak ada data NG." />
       </div>
 
-      {/* Hanger Matrix Section */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <p style={{ fontSize: 13, color: "var(--ink-secondary)", margin: 0 }}>Matrix Hanger</p>
-          <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>Total hanger filter: {totalHangerFiltered.toLocaleString("id-ID")}</span>
+      <div className="card section">
+        <div className="card-head">
+          <p className="card-title">Matrix hanger</p>
+          <span className="card-note">Total hanger sesuai filter: {totalHangerFiltered.toLocaleString("id-ID")}</span>
         </div>
-        {hangerMatrix.length === 0 ? (
-          <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Tidak ada data hanger.</p>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Line</th>
-                  {shiftNames.map((shift) => (
-                    <th key={shift} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>{shift}</th>
-                  ))}
-                  <th style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #e5e7eb" }}>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hangerMatrix.map((row) => (
-                  <tr key={`${row.line}-hanger`}>
-                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: row.line === "TOTAL" ? 700 : 500 }}>{row.line}</td>
-                    {shiftNames.map((shift) => (
-                      <td key={`${row.line}-${shift}-hanger`} style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4" }}>
-                        {Number(row[shift] || 0).toLocaleString("id-ID")}
-                      </td>
-                    ))}
-                    <td style={{ textAlign: "right", padding: "8px 10px", borderBottom: "1px solid #f0f2f4", fontWeight: 700 }}>
-                      {Number(row.total || 0).toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <MatrixTable matrix={hangerMatrix} shiftNames={shiftNames} empty="Tidak ada data hanger." />
       </div>
     </div>
   );

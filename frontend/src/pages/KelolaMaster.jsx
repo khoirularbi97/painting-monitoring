@@ -101,9 +101,9 @@ function MasterTable({ entityKey }) {
       )}
 
       {loading ? (
-        <p style={{ color: "var(--ink-muted)", fontSize: 13 }}>Memuat data...</p>
+        <p className="empty-note">Memuat data...</p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
+        <div>
           <PaginatedTable
             rows={rows}
             defaultPageSize={10}
@@ -140,18 +140,22 @@ function MasterTable({ entityKey }) {
                               />
                             </td>
                           ))}
-                          <td style={{ display: "flex", gap: 6 }}>
-                            <button className="btn-ghost" onClick={() => saveEdit(row.id)}>Simpan</button>
-                            <button className="btn-ghost" onClick={() => setEditingId(null)}>Batal</button>
+                          <td>
+                            <div className="row-actions">
+                              <button className="btn" onClick={() => saveEdit(row.id)}>Simpan</button>
+                              <button className="btn-ghost" onClick={() => setEditingId(null)}>Batal</button>
+                            </div>
                           </td>
                         </>
                       ) : (
                         <>
                           <td>{row[cfg.nameField]}</td>
                           {cfg.extraFields.map((f) => <td key={f.key}>{row[f.key] || "-"}</td>)}
-                          <td style={{ display: "flex", gap: 6 }}>
-                            <button className="btn-ghost" onClick={() => startEdit(row)}>Edit</button>
-                            <button className="btn-ghost" style={{ color: "var(--ng)" }} onClick={() => handleDelete(row.id)}>Hapus</button>
+                          <td>
+                            <div className="row-actions">
+                              <button className="btn-ghost" onClick={() => startEdit(row)}>Edit</button>
+                              <button className="btn-ghost btn-danger" onClick={() => handleDelete(row.id)}>Hapus</button>
+                            </div>
                           </td>
                         </>
                       )}
@@ -177,9 +181,11 @@ function MasterTable({ entityKey }) {
                           />
                         </td>
                       ))}
-                      <td style={{ display: "flex", gap: 6 }}>
-                        <button className="btn" onClick={handleAdd}>Tambah</button>
-                        <button className="btn-ghost" onClick={() => { setAdding(false); setNewForm({}); }}>Batal</button>
+                      <td>
+                        <div className="row-actions">
+                          <button className="btn" onClick={handleAdd}>Tambah</button>
+                          <button className="btn-ghost" onClick={() => { setAdding(false); setNewForm({}); }}>Batal</button>
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -191,7 +197,7 @@ function MasterTable({ entityKey }) {
       )}
 
       {!adding && (
-        <button className="btn-ghost" style={{ marginTop: 12 }} onClick={() => setAdding(true)}>
+        <button className="btn-ghost" style={{ marginTop: 14 }} onClick={() => setAdding(true)}>
           + Tambah {cfg.label.toLowerCase()}
         </button>
       )}
@@ -207,16 +213,20 @@ export default function KelolaMaster() {
       <h1 className="page-title">Kelola master data</h1>
       <p className="page-subtitle">Tambah, ubah, atau hapus daftar Line, Shift, Customer, dan Leader</p>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        {Object.entries(ENTITY_CONFIG).map(([key, cfg]) => (
-          <button
-            key={key}
-            className={entity === key ? "btn" : "btn-ghost"}
-            onClick={() => setEntity(key)}
-          >
-            {cfg.label}
-          </button>
-        ))}
+      <div className="toolbar" style={{ marginTop: 0 }}>
+        <div className="seg" role="tablist">
+          {Object.entries(ENTITY_CONFIG).map(([key, cfg]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={entity === key}
+              className={"seg-item" + (entity === key ? " active" : "")}
+              onClick={() => setEntity(key)}
+            >
+              {cfg.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="card">

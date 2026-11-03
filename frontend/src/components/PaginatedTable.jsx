@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatTanggal, isTanggal } from "../lib/format.js";
 
 export default function PaginatedTable({
   rows = [],
@@ -21,7 +22,9 @@ export default function PaginatedTable({
     return rows.filter((row) =>
       searchKeys.some((key) => {
         const value = key.split(".").reduce((acc, part) => (acc == null ? acc : acc[part]), row);
-        return String(value ?? "").toLowerCase().includes(query);
+        // Kolom tanggal ikut dicari lewat nama hari dan nama bulan ("senin", "nov").
+        const text = isTanggal(value) ? `${value} ${formatTanggal(value)}` : String(value ?? "");
+        return text.toLowerCase().includes(query);
       })
     );
   }, [rows, searchable, searchKeys, searchTerm]);
@@ -38,46 +41,48 @@ export default function PaginatedTable({
 
   const start = (page - 1) * pageSize;
   const currentRows = filteredRows.slice(start, start + pageSize);
+  const from = filteredRows.length ? start + 1 : 0;
+  const to = Math.min(start + pageSize, filteredRows.length);
 
   return (
-    <div>
+    <div className="ptable">
       {searchable && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+        <div className="ptable-search">
           <input
             type="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={searchPlaceholder}
-            style={{
-              width: "100%",
-              maxWidth: 260,
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: "1px solid var(--line)",
-              background: "var(--panel)",
-              color: "var(--ink)",
-            }}
+            aria-label="Cari data"
           />
         </div>
       )}
 
-      {children(currentRows)}
+      <div className="table-wrap">{children(currentRows)}</div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button className="btn-ghost" onClick={() => setPage(1)} disabled={page === 1}>⏮</button>
-          <button className="btn-ghost" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>◀</button>
-          <span style={{ fontSize: 13 }}>Halaman {page} / {totalPages}</span>
-          <button className="btn-ghost" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>▶</button>
-          <button className="btn-ghost" onClick={() => setPage(totalPages)} disabled={page === totalPages}>⏭</button>
+      {filteredRows.length === 0 && searchTerm.trim() && (
+        <p className="empty-note">Tidak ada data yang cocok dengan “{searchTerm.trim()}”.</p>
+      )}
+
+      <div className="ptable-footer">
+        <span className="ptable-count">
+          {from}–{to} dari {filteredRows.length.toLocaleString("id-ID")} data
+        </span>
+
+        <div className="ptable-nav">
+          <button className="page-btn" onClick={() => setPage(1)} disabled={page === 1} aria-label="Halaman pertama">«</button>
+          <button className="page-btn" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} aria-label="Halaman sebelumnya">‹</button>
+          <span className="page-info">Halaman {page} dari {totalPages}</span>
+          <button className="page-btn" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Halaman berikutnya">›</button>
+          <button className="page-btn" onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label="Halaman terakhir">»</button>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontSize: 13, color: "var(--ink-muted)", margin: 0 }}>Tampilkan</label>
+        <label className="ptable-size">
+          <span>Baris</span>
           <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
             {pageSizeOptions.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
-        </div>
+        </label>
       </div>
     </div>
   );

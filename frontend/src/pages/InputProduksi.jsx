@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, extractErrors } from "../lib/api.js";
+import { formatTanggal, isMinggu } from "../lib/format.js";
 
 function yesterday() {
   const d = new Date();
@@ -82,6 +83,9 @@ export default function InputProduksi() {
             <div className="field input-produksi-field">
               <label>Tanggal produksi</label>
               <input type="date" value={form.tanggal} onChange={(e) => update("tanggal", e.target.value)} required />
+              {form.tanggal && (
+                <span className={"field-hint" + (isMinggu(form.tanggal) ? " is-minggu" : "")}>{formatTanggal(form.tanggal)}</span>
+              )}
             </div>
             <div className="field input-produksi-field">
               <label>Line</label>

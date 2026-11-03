@@ -2,6 +2,13 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
+import { formatTanggal, isTanggal } from "./format.js";
+
+// Kolom berawalan "tanggal" diekspor dengan nama hari: "Senin, 02 Nov 2026".
+function cellValue(row, col) {
+  const v = row[col.key];
+  return col.key.startsWith("tanggal") && isTanggal(v) ? formatTanggal(v) : v;
+}
 
 // Ambil screenshot elemen DOM (mis. div pembungkus chart) jadi data URL PNG,
 // untuk ditempel ke PDF. Kembalikan null kalau elemen tidak ada.
@@ -17,7 +24,7 @@ export async function captureChartImage(element) {
 export function exportToExcel(rows, columns, filename, summary) {
   const data = rows.map((row) => {
     const obj = {};
-    columns.forEach((col) => { obj[col.label] = row[col.key]; });
+    columns.forEach((col) => { obj[col.label] = cellValue(row, col); });
     return obj;
   });
   const workbook = XLSX.utils.book_new();
@@ -63,9 +70,10 @@ export function exportToPDF(rows, columns, filename, title, chartImage, summary)
   autoTable(doc, {
     startY,
     head: [columns.map((c) => c.label)],
-    body: rows.map((row) => columns.map((c) => row[c.key] ?? "")),
+    body: rows.map((row) => columns.map((c) => cellValue(row, c) ?? "")),
     styles: { fontSize: 8 },
-    headStyles: { fillColor: [47, 102, 144] },
+    headStyles: { fillColor: [51, 71, 201] },
+    alternateRowStyles: { fillColor: [247, 248, 252] },
   });
 
   doc.save(`${filename}.pdf`);
