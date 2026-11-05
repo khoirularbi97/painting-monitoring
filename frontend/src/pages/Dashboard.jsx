@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { api } from "../lib/api.js";
 import { exportToExcel, exportToPDF, captureChartImage } from "../lib/export.js";
+import PerformaCharts from "../components/PerformaCharts.jsx";
 import PaginatedTable from "../components/PaginatedTable.jsx";
 import Tanggal from "../components/Tanggal.jsx";
 import { formatTanggal, formatTanggalTick } from "../lib/format.js";
@@ -645,6 +646,8 @@ export default function Dashboard() {
           </ResponsiveContainer>
         )}
       </div>
+
+      <PerformaCharts rows={rows} loading={loadingRows} />
 
       <div className="card section">
         <div className="dashboard-detail-header">
