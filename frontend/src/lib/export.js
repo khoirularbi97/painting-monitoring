@@ -7,7 +7,11 @@ import { formatTanggal, isTanggal } from "./format.js";
 // Kolom berawalan "tanggal" diekspor dengan nama hari: "Senin, 02 Nov 2026".
 function cellValue(row, col) {
   const v = row[col.key];
-  return col.key.startsWith("tanggal") && isTanggal(v) ? formatTanggal(v) : v;
+  if (col.key.startsWith("tanggal") && isTanggal(v)) return formatTanggal(v);
+  // PostgreSQL mengirim kolom NUMERIC (persen, efisiensi) sebagai teks "90.1". Jadikan angka,
+  // karena sel berisi teks diabaikan oleh AVERAGEIFS/SUMIFS di Excel.
+  if (typeof v === "string" && /^(persen_|efisiensi|total_|ok_|ng_|comp_)/.test(col.key) && /^-?\d+(\.\d+)?$/.test(v)) return Number(v);
+  return v;
 }
 
 // Ambil screenshot elemen DOM (mis. div pembungkus chart) jadi data URL PNG,
@@ -18,10 +22,22 @@ export async function captureChartImage(element) {
   return canvas.toDataURL("image/png");
 }
 
+// Tangkap beberapa elemen sekaligus (chart yang tidak ada di layar dilewati).
+// Hasil: [{ data, width, height }] dalam piksel, dipakai exportToPDF agar rasio gambar tetap.
+export async function captureCharts(elements) {
+  const out = [];
+  for (const el of elements) {
+    if (!el) continue;
+    const canvas = await html2canvas(el, { backgroundColor: "#ffffff", scale: 2 });
+    out.push({ data: canvas.toDataURL("image/png"), width: canvas.width, height: canvas.height });
+  }
+  return out;
+}
+
 // columns: [{ key: 'tanggal', label: 'Tanggal' }, ...]
 // rows: array data mentah (object per baris)
 
-export function exportToExcel(rows, columns, filename, summary) {
+export function exportToExcel(rows, columns, filename, summary, extraSheets) {
   const data = rows.map((row) => {
     const obj = {};
     columns.forEach((col) => { obj[col.label] = cellValue(row, col); });
@@ -37,6 +53,16 @@ export function exportToExcel(rows, columns, filename, summary) {
 
   const sheet = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(workbook, sheet, "Data");
+  // Lembar tambahan: [{ name, columns, rows }]. Nilai angka dibiarkan angka agar bisa dipakai rumus.
+  (extraSheets || []).forEach((sh) => {
+    const sheetRows = sh.rows.map((row) => {
+      const obj = {};
+      sh.columns.forEach((col) => { obj[col.label] = cellValue(row, col); });
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{}], { header: sh.columns.map((c) => c.label) });
+    XLSX.utils.book_append_sheet(workbook, ws, sh.name);
+  });
   XLSX.writeFile(workbook, `${filename}.xlsx`);
 }
 
@@ -60,12 +86,24 @@ export function exportToPDF(rows, columns, filename, title, chartImage, summary)
     startY = y + 4;
   }
 
-  if (chartImage) {
-    const imgWidth = 180;
-    const imgHeight = 70;
-    doc.addImage(chartImage, "PNG", 14, startY, imgWidth, imgHeight);
-    startY += imgHeight + 8;
-  }
+  // chartImage: satu data URL (lama) atau daftar { data, width, height } dari captureCharts.
+  const images = Array.isArray(chartImage) ? chartImage : chartImage ? [{ data: chartImage, width: 180, height: 70 }] : [];
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const maxW = Math.min(pageW - 28, 160);
+  const maxH = pageH - 28;
+  images.forEach((img) => {
+    // Skala ke lebar halaman, lalu perkecil bila terlalu tinggi; rasio asli dipertahankan.
+    const scale = Math.min(maxW / img.width, maxH / img.height, 0.2);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    if (startY + h > pageH - 10) {
+      doc.addPage();
+      startY = 14;
+    }
+    doc.addImage(img.data, "PNG", 14, startY, w, h);
+    startY += h + 8;
+  });
 
   autoTable(doc, {
     startY,

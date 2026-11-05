@@ -4,7 +4,8 @@ import {
   BarChart, Bar, Legend,
 } from "recharts";
 import { api } from "../lib/api.js";
-import { exportToExcel, exportToPDF, captureChartImage } from "../lib/export.js";
+import { exportToExcel, exportToPDF, captureCharts } from "../lib/export.js";
+import { CHECK_COLUMNS, buildChartSheets, readTarget, withCheckValues } from "../lib/performa.js";
 import PerformaCharts from "../components/PerformaCharts.jsx";
 import PaginatedTable from "../components/PaginatedTable.jsx";
 import Tanggal from "../components/Tanggal.jsx";
@@ -85,6 +86,9 @@ export default function Dashboard() {
   const [loadingRows, setLoadingRows] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const chartRef = useRef(null);
+  const dailyChartRef = useRef(null);
+  const monthlyChartRef = useRef(null);
+  const pieChartRef = useRef(null);
 
   useEffect(() => {
     api.get("/master/line").then((r) => setLines(r.data));
@@ -647,7 +651,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <PerformaCharts rows={rows} loading={loadingRows} />
+      <PerformaCharts rows={rows} loading={loadingRows} dailyRef={dailyChartRef} monthlyRef={monthlyChartRef} pieRef={pieChartRef} />
 
       <div className="card section">
         <div className="dashboard-detail-header">
@@ -657,15 +661,16 @@ export default function Dashboard() {
               className="btn-ghost"
               disabled={rows.length === 0}
               onClick={() => {
+                const target = readTarget();
                 const prepared = rows.map((r) => {
                   const part = Number(r.total_part) || 0;
                   const okAwal = Number(r.ok_awal) || 0;
                   const comp = Number(r.total_comp) || 0;
-                  return {
+                  return withCheckValues({
                     ...r,
                     persen_ok_awal: r.persen_ok_awal ?? (part ? Math.round((okAwal / part) * 1000) / 10 : null),
                     persen_comp: part ? Math.round((comp / part) * 1000) / 10 : null,
-                  };
+                  }, target);
                 });
                 const summary = [
                   { label: "Rata-rata %OK awal", value: `${avgOkAwal}%` },
@@ -674,7 +679,8 @@ export default function Dashboard() {
                   { label: "Rata-rata %NG final", value: `${avgNgFinal}%` },
                   { label: "Total part diproses", value: totalPart.toLocaleString("id-ID") },
                 ];
-                exportToExcel(prepared, EXPORT_COLUMNS, "dashboard-painting", summary);
+                summary.push({ label: "Target part/hanger (untuk OEE)", value: target });
+                exportToExcel(prepared, [...EXPORT_COLUMNS, ...CHECK_COLUMNS], "dashboard-painting", summary, buildChartSheets(rows, target));
               }}
             >
               Export Excel
@@ -685,7 +691,7 @@ export default function Dashboard() {
               onClick={async () => {
                 setExportingPDF(true);
                 try {
-                  const chartImage = await captureChartImage(chartRef.current);
+                  const chartImage = await captureCharts([chartRef.current, dailyChartRef.current, pieChartRef.current, monthlyChartRef.current]);
                   const prepared = rows.map((r) => {
                     const part = Number(r.total_part) || 0;
                     const okAwal = Number(r.ok_awal) || 0;

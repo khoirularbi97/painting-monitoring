@@ -1,38 +1,14 @@
 import { useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, Cell, Pie, PieChart, CartesianGrid, LabelList, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatTanggal, formatTanggalTick } from "../lib/format.js";
+import { DEFAULT_TARGET, TARGET_KEY, computeDaily, computeMonthly, computePartShare, readTarget } from "../lib/performa.js";
 
 const TOOLTIP_STYLE = { borderRadius: 10, border: "1px solid #e4e7f1", boxShadow: "0 8px 24px -8px rgba(22,27,51,.18)", fontSize: 12.5 };
-const TARGET_KEY = "target-part-per-hanger";
-const DEFAULT_TARGET = 20;
-function readTarget() {
-  try { const v = Number(localStorage.getItem(TARGET_KEY)); return v > 0 ? v : DEFAULT_TARGET; } catch { return DEFAULT_TARGET; }
-}
 const LABEL = { fontSize: 11, fill: "#4f5878", fontWeight: 600 };
-const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const CUSTOMER_COLORS = ["#3347c9", "#e3a82b", "#12804a", "#bf3049"];
 
-const num = (v) => Number(v) || 0;
-const r1 = (v) => Math.round(v * 10) / 10;
-const mean = (arr) => (arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
-
-function pctOkFinal(r) {
-  if (r.persen_ok_final != null) return num(r.persen_ok_final);
-  return num(r.total_part) ? (num(r.total_ok_final) / num(r.total_part)) * 100 : 0;
-}
-
-// Compound final = compound yang belum selesai di-repair (compound awal dikurangi yang sudah diproses repair).
-function compFinal(r) {
-  return Math.max(0, num(r.total_comp) - num(r.ok_dari_repair) - num(r.ng_dari_repair));
-}
-
-function monthLabel(key) {
-  const [y, m] = key.split("-");
-  return `${BULAN[Number(m) - 1]} ${y}`;
-}
-
 // Semua rata-rata = jumlah %-per-baris dibagi jumlah baris (sama dengan kartu ringkasan).
-export default function PerformaCharts({ rows, loading }) {
+export default function PerformaCharts({ rows, loading, dailyRef, monthlyRef, pieRef }) {
   const [target, setTarget] = useState(readTarget);
   const changeTarget = (v) => {
     setTarget(v);
@@ -40,50 +16,18 @@ export default function PerformaCharts({ rows, loading }) {
   };
   const targetNum = Number(target) > 0 ? Number(target) : DEFAULT_TARGET;
 
-  const { daily, customers, monthly } = useMemo(() => {
-    const names = [...new Set(rows.map((r) => r.nama_customer).filter(Boolean))].sort();
-
-    const byDay = {};
-    rows.forEach((r) => {
-      const day = String(r.tanggal).slice(0, 10);
-      const c = r.nama_customer;
-      if (!c) return;
-      ((byDay[day] ??= {})[c] ??= []).push(pctOkFinal(r));
-    });
-    const daily = Object.keys(byDay).sort().map((day) => {
-      const o = { tanggal: day };
-      names.forEach((c) => { if (byDay[day][c]) o[c] = r1(mean(byDay[day][c])); });
-      return o;
-    });
-
-    const byMonth = {};
-    rows.forEach((r) => {
-      const key = String(r.tanggal).slice(0, 7);
-      (byMonth[key] ??= []).push(r);
-    });
-    const monthly = Object.keys(byMonth).sort().map((key) => {
-      const list = byMonth[key];
-      const eff = list.map((r) => r.efisiensi_hanger).filter((v) => v != null).map(Number);
-      return {
-        bulan: monthLabel(key),
-        ok_final: r1(mean(list.map(pctOkFinal))),
-        comp_final: r1(mean(list.map((r) => (num(r.total_part) ? (compFinal(r) / num(r.total_part)) * 100 : 0)))),
-        // OEE = Availability (diasumsikan 100%) x Performance x Quality, dihitung per baris lalu dirata-ratakan.
-        // Performance = part per hanger / target (maksimal 100%). Baris tanpa hanger dilewati.
-        oee: r1(mean(list.filter((r) => r.efisiensi_hanger != null).map((r) => pctOkFinal(r) * Math.min(1, Number(r.efisiensi_hanger) / targetNum)))),
-        total_hanger: list.reduce((s, r) => s + num(r.total_hanger), 0),
-        eff_hanger: r1(mean(eff)),
-      };
-    });
-    return { daily, customers: names, monthly };
-  }, [rows, targetNum]);
+  const { daily, customers } = useMemo(() => computeDaily(rows), [rows]);
+  const share = useMemo(() => computePartShare(rows), [rows]);
+  const sharePie = share.filter((s) => s.total_part > 0);
+  const shareTotal = share.reduce((s, x) => s + x.total_part, 0);
+  const monthly = useMemo(() => computeMonthly(rows, targetNum), [rows, targetNum]);
 
   const axis = { tick: { fontSize: 11.5 }, tickLine: false };
   const empty = loading ? "Memuat data..." : "Belum ada data produksi untuk filter ini.";
 
   return (
     <>
-      <div className="card section">
+      <div className="card section" ref={dailyRef}>
         <div className="card-head">
           <div>
             <p className="card-title">%OK final per hari per customer</p>
@@ -108,7 +52,42 @@ export default function PerformaCharts({ rows, loading }) {
         )}
       </div>
 
-      <div className="card section">
+      <div className="card section" ref={pieRef}>
+        <div className="card-head">
+          <div>
+            <p className="card-title">Perbandingan total part per customer</p>
+            <p className="card-note">Jumlah part seluruh line dan shift pada periode yang difilter</p>
+          </div>
+        </div>
+        {sharePie.length === 0 ? (
+          <p className="empty-note">{empty}</p>
+        ) : (
+          <div className="pie-wrap">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
+                <Pie isAnimationActive={false} data={sharePie} dataKey="total_part" nameKey="name" innerRadius="50%" outerRadius="72%" paddingAngle={sharePie.length > 1 ? 2 : 0} stroke="#fff" strokeWidth={2}
+                  label={({ name, percent }) => `${name} ${Math.round(percent * 1000) / 10}%`} labelLine>
+                  {sharePie.map((s) => <Cell key={s.name} fill={CUSTOMER_COLORS[customers.indexOf(s.name) % CUSTOMER_COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v, n) => [`${v.toLocaleString("id-ID")} part`, n]} contentStyle={TOOLTIP_STYLE} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pie-legend">
+              {share.map((s) => (
+                <div key={s.name} className="pie-row">
+                  <span className="pie-dot" style={{ background: CUSTOMER_COLORS[customers.indexOf(s.name) % CUSTOMER_COLORS.length] }} />
+                  <span className="pie-name">{s.name}</span>
+                  <strong>{s.total_part.toLocaleString("id-ID")}</strong>
+                  <span className="pie-pct">{s.persen}%</span>
+                </div>
+              ))}
+              <div className="pie-row pie-total"><span className="pie-name">Total</span><strong>{shareTotal.toLocaleString("id-ID")}</strong></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card section" ref={monthlyRef}>
         <div className="card-head">
           <div>
             <p className="card-title">Performance per bulan</p>
