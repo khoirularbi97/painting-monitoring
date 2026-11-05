@@ -14,6 +14,7 @@ import Tanggal from "../components/Tanggal.jsx";
 import { formatTanggal, formatTanggalTick, namaHari } from "../lib/format.js";
 import { api, extractErrors } from "../lib/api.js";
 import { exportToExcel, exportToPDF } from "../lib/export.js";
+import { useAuth } from "../lib/auth.jsx";
 
 function EditProduksiForm({ row, lines, shifts, customers, leaders, onCancel, onSaved }) {
   const leaderName = row.nama_leader ?? row.leader ?? "";
@@ -175,6 +176,7 @@ function EditRepairForm({ row, onCancel, onSaved }) {
 }
 
 export default function KelolaData() {
+  const { isAdmin } = useAuth();
   const [tab, setTab] = useState("produksi");
   const [lines, setLines] = useState([]);
   const [shifts, setShifts] = useState([]);
@@ -401,7 +403,7 @@ export default function KelolaData() {
                             <td>
                               <div className="row-actions">
                                 <button className="btn-ghost" onClick={() => setEditingId(`p-${r.produksi_id}`)}>Edit</button>
-                                <button className="btn-ghost btn-danger" onClick={() => handleDeleteProduksi(r.produksi_id)}>Hapus</button>
+                                {isAdmin && <button className="btn-ghost btn-danger" onClick={() => handleDeleteProduksi(r.produksi_id)}>Hapus</button>}
                               </div>
                             </td>
                           </tr>
@@ -501,7 +503,7 @@ export default function KelolaData() {
                             <td>
                               <div className="row-actions">
                                 <button className="btn-ghost" onClick={() => setEditingId(`r-${r.id}`)}>Edit</button>
-                                <button className="btn-ghost btn-danger" onClick={() => handleDeleteRepair(r.id)}>Hapus</button>
+                                {isAdmin && <button className="btn-ghost btn-danger" onClick={() => handleDeleteRepair(r.id)}>Hapus</button>}
                               </div>
                             </td>
                           </tr>

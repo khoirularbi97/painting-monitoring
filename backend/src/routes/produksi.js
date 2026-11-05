@@ -63,7 +63,7 @@ router.post("/", async (req, res) => {
   const {
     tanggal, line_id, shift_id, customer_id,
     total_part, total_ok, total_comp, total_ng, total_hanger,
-    input_by, leader_id,
+    leader_id,
   } = req.body;
 
   try {
@@ -72,7 +72,7 @@ router.post("/", async (req, res) => {
         (tanggal, line_id, shift_id, customer_id, leader_id, total_part, total_ok, total_comp, total_ng, total_hanger, input_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
-      [tanggal, line_id, shift_id, customer_id, leader_id || null, total_part, total_ok, total_comp, total_ng, total_hanger, input_by || null]
+      [tanggal, line_id, shift_id, customer_id, leader_id || null, total_part, total_ok, total_comp, total_ng, total_hanger, req.user?.username ?? null]
     );
     const row = result.rows[0];
     res.status(201).json(row);
