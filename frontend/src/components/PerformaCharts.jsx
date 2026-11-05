@@ -1,8 +1,13 @@
-import { useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useMemo, useState } from "react";
+import { Bar, BarChart, CartesianGrid, LabelList, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatTanggal, formatTanggalTick } from "../lib/format.js";
 
 const TOOLTIP_STYLE = { borderRadius: 10, border: "1px solid #e4e7f1", boxShadow: "0 8px 24px -8px rgba(22,27,51,.18)", fontSize: 12.5 };
+const TARGET_KEY = "target-part-per-hanger";
+const DEFAULT_TARGET = 20;
+function readTarget() {
+  try { const v = Number(localStorage.getItem(TARGET_KEY)); return v > 0 ? v : DEFAULT_TARGET; } catch { return DEFAULT_TARGET; }
+}
 const LABEL = { fontSize: 11, fill: "#4f5878", fontWeight: 600 };
 const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const CUSTOMER_COLORS = ["#3347c9", "#e3a82b", "#12804a", "#bf3049"];
@@ -28,6 +33,13 @@ function monthLabel(key) {
 
 // Semua rata-rata = jumlah %-per-baris dibagi jumlah baris (sama dengan kartu ringkasan).
 export default function PerformaCharts({ rows, loading }) {
+  const [target, setTarget] = useState(readTarget);
+  const changeTarget = (v) => {
+    setTarget(v);
+    if (Number(v) > 0) { try { localStorage.setItem(TARGET_KEY, String(v)); } catch { /* abaikan */ } }
+  };
+  const targetNum = Number(target) > 0 ? Number(target) : DEFAULT_TARGET;
+
   const { daily, customers, monthly } = useMemo(() => {
     const names = [...new Set(rows.map((r) => r.nama_customer).filter(Boolean))].sort();
 
@@ -56,12 +68,15 @@ export default function PerformaCharts({ rows, loading }) {
         bulan: monthLabel(key),
         ok_final: r1(mean(list.map(pctOkFinal))),
         comp_final: r1(mean(list.map((r) => (num(r.total_part) ? (compFinal(r) / num(r.total_part)) * 100 : 0)))),
+        // OEE = Availability (diasumsikan 100%) x Performance x Quality, dihitung per baris lalu dirata-ratakan.
+        // Performance = part per hanger / target (maksimal 100%). Baris tanpa hanger dilewati.
+        oee: r1(mean(list.filter((r) => r.efisiensi_hanger != null).map((r) => pctOkFinal(r) * Math.min(1, Number(r.efisiensi_hanger) / targetNum)))),
         total_hanger: list.reduce((s, r) => s + num(r.total_hanger), 0),
         eff_hanger: r1(mean(eff)),
       };
     });
     return { daily, customers: names, monthly };
-  }, [rows]);
+  }, [rows, targetNum]);
 
   const axis = { tick: { fontSize: 11.5 }, tickLine: false };
   const empty = loading ? "Memuat data..." : "Belum ada data produksi untuk filter ini.";
@@ -98,37 +113,60 @@ export default function PerformaCharts({ rows, loading }) {
           <div>
             <p className="card-title">Performance per bulan</p>
             <p className="card-note">
-              %OK final dan %Compound final = rata-rata %-per-baris (sumbu kiri). Total hanger di sumbu kanan. Efektif hanger = rata-rata part per hanger, nilainya tertera di atas batang.
+              Persentase = rata-rata %-per-baris. OEE = Availability (diasumsikan 100%) &times; Performance (part per hanger / target) &times; Quality (%OK final). Grafik hanger: sumbu kiri total hanger, sumbu kanan part per hanger, garis putus-putus = target.
             </p>
           </div>
+          <label className="perf-target">
+            Target part/hanger
+            <input type="number" min="1" step="any" value={target} onChange={(e) => changeTarget(e.target.value)} />
+          </label>
         </div>
         {monthly.length === 0 ? (
           <p className="empty-note">{empty}</p>
         ) : (
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart data={monthly} margin={{ top: 22, right: 8, left: 0, bottom: 0 }} barGap={3}>
-              <CartesianGrid stroke="#e9ecf4" vertical={false} />
-              <XAxis dataKey="bulan" {...axis} axisLine={{ stroke: "#d2d7e6" }} />
-              <YAxis yAxisId="pct" domain={[0, 100]} tickFormatter={(v) => `${v}%`} {...axis} axisLine={false} width={42} />
-              <YAxis yAxisId="total" orientation="right" domain={[0, (max) => Math.ceil((max * 1.15) / 100) * 100 || 100]} {...axis} axisLine={false} width={52} tickFormatter={(v) => v.toLocaleString("id-ID")} />
-              {/* Sumbu efektif hanger disembunyikan; nilainya tampil di label batang dan tooltip. */}
-              <YAxis yAxisId="eff" hide domain={[0, (max) => Math.ceil(max * 1.3) || 1]} />
-              <Tooltip cursor={{ fill: "#f2f4f9" }} formatter={(v, n) => [n.startsWith("%") ? `${v}%` : v.toLocaleString("id-ID"), n]} contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#161b33", fontWeight: 650, marginBottom: 4 }} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: 14, fontSize: 12.5 }} />
-              <Bar yAxisId="pct" dataKey="ok_final" name="%OK final" fill="#12804a" radius={[4, 4, 0, 0]} maxBarSize={44}>
-                <LabelList dataKey="ok_final" position="top" formatter={(v) => `${v}%`} style={LABEL} />
-              </Bar>
-              <Bar yAxisId="pct" dataKey="comp_final" name="%Compound final" fill="#e3a82b" radius={[4, 4, 0, 0]} maxBarSize={44}>
-                <LabelList dataKey="comp_final" position="top" formatter={(v) => `${v}%`} style={LABEL} />
-              </Bar>
-              <Bar yAxisId="total" dataKey="total_hanger" name="Total hanger (sumbu kanan)" fill="#3347c9" radius={[4, 4, 0, 0]} maxBarSize={44}>
-                <LabelList dataKey="total_hanger" position="top" formatter={(v) => v.toLocaleString("id-ID")} style={LABEL} />
-              </Bar>
-              <Bar yAxisId="eff" dataKey="eff_hanger" name="Rata-rata efektif hanger (part/hanger)" fill="#8a97e8" radius={[4, 4, 0, 0]} maxBarSize={44}>
-                <LabelList dataKey="eff_hanger" position="top" formatter={(v) => v.toLocaleString("id-ID")} style={LABEL} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="perf-grid">
+            <div>
+              <p className="perf-sub">Persentase</p>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={monthly} margin={{ top: 22, right: 8, left: 0, bottom: 0 }} barGap={3}>
+                  <CartesianGrid stroke="#e9ecf4" vertical={false} />
+                  <XAxis dataKey="bulan" {...axis} axisLine={{ stroke: "#d2d7e6" }} />
+                  <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} {...axis} axisLine={false} width={42} />
+                  <Tooltip cursor={{ fill: "#f2f4f9" }} formatter={(v, n) => [`${v}%`, n]} contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#161b33", fontWeight: 650, marginBottom: 4 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: 14, fontSize: 12.5 }} />
+                  <Bar dataKey="ok_final" name="%OK final" fill="#12804a" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                    <LabelList dataKey="ok_final" position="top" formatter={(v) => `${v}%`} style={LABEL} />
+                  </Bar>
+                  <Bar dataKey="comp_final" name="%Compound final" fill="#e3a82b" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                    <LabelList dataKey="comp_final" position="top" formatter={(v) => `${v}%`} style={LABEL} />
+                  </Bar>
+                  <Bar dataKey="oee" name="OEE" fill="#7a3fc4" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                    <LabelList dataKey="oee" position="top" formatter={(v) => `${v}%`} style={LABEL} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div>
+              <p className="perf-sub">Hanger</p>
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={monthly} margin={{ top: 22, right: 0, left: 0, bottom: 0 }} barGap={3}>
+                  <CartesianGrid stroke="#e9ecf4" vertical={false} />
+                  <XAxis dataKey="bulan" {...axis} axisLine={{ stroke: "#d2d7e6" }} />
+                  <YAxis yAxisId="total" tickLine={false} axisLine={false} width={52} tick={{ fontSize: 11.5, fill: "#3347c9" }} tickFormatter={(v) => v.toLocaleString("id-ID")} />
+                  <YAxis yAxisId="eff" orientation="right" domain={[0, (max) => Math.ceil(Math.max(max, targetNum) * 1.2)]} tickLine={false} axisLine={false} width={36} tick={{ fontSize: 11.5, fill: "#6a77d6" }} />
+                  <Tooltip cursor={{ fill: "#f2f4f9" }} formatter={(v, n) => [v.toLocaleString("id-ID"), n]} contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "#161b33", fontWeight: 650, marginBottom: 4 }} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: 14, fontSize: 12.5 }} />
+                  <ReferenceLine yAxisId="eff" y={targetNum} stroke="#6a77d6" strokeDasharray="5 4" />
+                  <Bar yAxisId="total" dataKey="total_hanger" name="Total hanger" fill="#3347c9" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                    <LabelList dataKey="total_hanger" position="top" formatter={(v) => v.toLocaleString("id-ID")} style={LABEL} />
+                  </Bar>
+                  <Bar yAxisId="eff" dataKey="eff_hanger" name="Rata-rata efektif hanger" fill="#8a97e8" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                    <LabelList dataKey="eff_hanger" position="top" formatter={(v) => v.toLocaleString("id-ID")} style={LABEL} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
       </div>
     </>
