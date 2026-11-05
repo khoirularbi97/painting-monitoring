@@ -142,21 +142,18 @@ export default function Dashboard() {
     return part ? Math.round((comp / part) * 1000) / 10 : 0;
   }
 
-  const avgOkAwal = data.length
-    ? Math.round((data.reduce((s, d) => s + computePercentOkAwal(d), 0) / data.length) * 10) / 10
-    : 0;
-  const avgOkFinal = data.length
-    ? Math.round((data.reduce((s, d) => s + (d.persen_ok_final || 0), 0) / data.length) * 10) / 10
-    : 0;
-  const avgComp = data.length
-    ? Math.round((data.reduce((s, d) => s + computePercentComp(d), 0) / data.length) * 10) / 10
-    : 0;
-  const avgNgAwal = data.length
-    ? Math.round((data.reduce((s, d) => s + (d.persen_ng_awal ?? 0), 0) / data.length) * 10) / 10
-    : 0;
-  const avgNgFinal = data.length
-    ? Math.round((data.reduce((s, d) => s + (d.persen_ng_final ?? 0), 0) / data.length) * 10) / 10
-    : 0;
+  // Rata-rata = jumlah %-per-baris (per shift/customer) dibagi jumlah baris, bukan total OK dibagi total part.
+  const pctRow = (r, ready, count) => {
+    if (ready != null) return Number(ready) || 0;
+    const part = Number(r.total_part) || 0;
+    return part ? ((Number(count) || 0) / part) * 100 : 0;
+  };
+  const meanPct = (fn) => (rows.length ? Math.round((rows.reduce((s, r) => s + fn(r), 0) / rows.length) * 10) / 10 : 0);
+  const avgOkAwal = meanPct((r) => pctRow(r, r.persen_ok_awal, r.ok_awal));
+  const avgOkFinal = meanPct((r) => pctRow(r, r.persen_ok_final, r.total_ok_final));
+  const avgComp = meanPct((r) => pctRow(r, null, r.total_comp));
+  const avgNgAwal = meanPct((r) => pctRow(r, r.persen_ng_awal, r.ng_awal));
+  const avgNgFinal = meanPct((r) => pctRow(r, r.persen_ng_final, r.total_ng_final ?? r.ng_awal));
 
   // ranking controls (default sort by avg_ok_final)
   const [rankingMetric, setRankingMetric] = useState("avg_ok_final");
@@ -209,20 +206,26 @@ export default function Dashboard() {
     const agg = {};
     sourceRows.forEach((r) => {
       const name = r.nama_leader ?? r.leader ?? "-";
-      if (!agg[name]) agg[name] = { name, total_part: 0, total_ok_final: 0, total_hanger: 0, total_comp: 0, total_ok_awal: 0, count: 0 };
+      if (!agg[name]) agg[name] = { name, total_part: 0, total_ok_final: 0, total_hanger: 0, total_comp: 0, total_ok_awal: 0, sum_pct_ok_final: 0, sum_pct_comp: 0, sum_pct_ok_awal: 0, count: 0 };
       agg[name].total_part += Number(r.total_part) || 0;
       agg[name].total_ok_final += Number(r.total_ok_final) || 0;
       agg[name].total_hanger += Number(r.total_hanger) || 0;
       agg[name].total_comp += Number(r.total_comp) || 0;
       agg[name].total_ok_awal += Number(r.ok_awal) || 0;
+      // %-nya dihitung per baris (per shift), lalu dirata-ratakan: jumlah % dibagi jumlah baris.
+      const part = Number(r.total_part) || 0;
+      const pct = (v) => (part ? ((Number(v) || 0) / part) * 100 : 0);
+      agg[name].sum_pct_ok_final += r.persen_ok_final != null ? Number(r.persen_ok_final) || 0 : pct(r.total_ok_final);
+      agg[name].sum_pct_comp += pct(r.total_comp);
+      agg[name].sum_pct_ok_awal += r.persen_ok_awal != null ? Number(r.persen_ok_awal) || 0 : pct(r.ok_awal);
       agg[name].count += 1;
     });
 
     const mapped = Object.values(agg).map((l) => ({
       ...l,
-      avg_ok_final: l.total_part ? Math.round((l.total_ok_final / l.total_part) * 1000) / 10 : 0,
-      avg_comp: l.total_part ? Math.round((l.total_comp / l.total_part) * 1000) / 10 : 0,
-      avg_ok_awal: l.total_part ? Math.round((l.total_ok_awal / l.total_part) * 1000) / 10 : 0,
+      avg_ok_final: l.count ? Math.round((l.sum_pct_ok_final / l.count) * 10) / 10 : 0,
+      avg_comp: l.count ? Math.round((l.sum_pct_comp / l.count) * 10) / 10 : 0,
+      avg_ok_awal: l.count ? Math.round((l.sum_pct_ok_awal / l.count) * 10) / 10 : 0,
     }));
 
     const maxPart = mapped.length ? Math.max(...mapped.map((m) => m.total_part || 0)) : 0;
