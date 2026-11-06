@@ -157,20 +157,25 @@ export function exportToPDF(rows, columns, filename, title, chartImage, summary)
   const images = Array.isArray(chartImage) ? chartImage : chartImage ? [{ data: chartImage, width: 180, height: 70 }] : [];
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const maxW = Math.min(pageW - 28, 160);
+  // Chart dipasang 2 kolom per baris (sama seperti di dashboard). Tiap gambar diskalakan ke lebar
+  // kolom dengan rasio asli; baris pindah halaman bila tidak muat.
+  const gap = 8;
+  const colW = (pageW - 28 - gap) / 2;
   const maxH = pageH - 28;
-  images.forEach((img) => {
-    // Skala ke lebar halaman, lalu perkecil bila terlalu tinggi; rasio asli dipertahankan.
-    const scale = Math.min(maxW / img.width, maxH / img.height, 0.2);
-    const w = img.width * scale;
-    const h = img.height * scale;
-    if (startY + h > pageH - 10) {
+  const scaled = images.map((img) => {
+    const scale = Math.min(colW / img.width, maxH / img.height);
+    return { img, w: img.width * scale, h: img.height * scale };
+  });
+  for (let i = 0; i < scaled.length; i += 2) {
+    const row = scaled.slice(i, i + 2);
+    const rowH = Math.max(...row.map((c) => c.h));
+    if (startY + rowH > pageH - 10) {
       doc.addPage();
       startY = 14;
     }
-    doc.addImage(img.data, "JPEG", 14, startY, w, h);
-    startY += h + 8;
-  });
+    row.forEach((c, k) => doc.addImage(c.img.data, c.img.data.startsWith("data:image/png") ? "PNG" : "JPEG", 14 + k * (colW + gap), startY, c.w, c.h));
+    startY += rowH + 8;
+  }
 
   autoTable(doc, {
     startY,

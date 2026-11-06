@@ -86,11 +86,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [loadingRows, setLoadingRows] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [tab, setTab] = useState("detail");
   const [pdfNote, setPdfNote] = useState("");
   const chartRef = useRef(null);
   const dailyChartRef = useRef(null);
   const monthlyChartRef = useRef(null);
   const pieChartRef = useRef(null);
+  const shiftChartRef = useRef(null);
+  const monthlyHangerRef = useRef(null);
 
   useEffect(() => {
     api.get("/master/line").then((r) => setLines(r.data));
@@ -396,7 +399,7 @@ export default function Dashboard() {
   const totalNgFiltered = rows.reduce((sum, r) => sum + (Number(r.total_ng_final ?? r.ng_awal ?? 0) || 0), 0);
 
   return (
-    <div>
+    <div className="dash-compact">
       <div className="page-head">
         <div>
           <h1 className="page-title">Dashboard performa painting</h1>
@@ -450,139 +453,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Leader ranking & hanger per shift summary */}
-      <div className="stack">
-        <div className="card">
-          <div className="ranking-header">
-            <p className="ranking-title">Ranking leader</p>
-            <div className="controls">
-              <label>Urutkan:</label>
-              <select value={rankingMetric} onChange={(e) => setRankingMetric(e.target.value)}>
-                <option value="avg_ok_final">%OK final (rata-rata)</option>
-                <option value="avg_comp">%Compound (rata-rata)</option>
-                <option value="avg_ok_awal">%OK awal (rata-rata)</option>
-                <option value="overall">Bobot keseluruhan</option>
-                <option value="total_part">Total part</option>
-                <option value="total_hanger">Total hanger</option>
-              </select>
-              <label>Line</label>
-              <select value={rankingLineFilter} onChange={(e) => setRankingLineFilter(e.target.value)}>
-                <option value="">Semua</option>
-                {lines.map((ln) => <option key={ln.id} value={ln.id}>{ln.nama_line}</option>)}
-              </select>
-              <label>Tampilkan</label>
-              <select value={rankingLimit} onChange={(e) => setRankingLimit(Number(e.target.value))}>
-                <option value={5}>5</option>
-                <option value={8}>8</option>
-                <option value={12}>12</option>
-              </select>
-              <div className="ranking-actions">
-                <button className="btn-ghost" onClick={exportLeaderRankingExcel}>Export Excel</button>
-                <button className="btn-ghost" onClick={exportLeaderRankingPDF}>Export PDF</button>
-              </div>
-            </div>
-          </div>
-          <div className="ranking-controls">
-            <div className="weight-control">
-              <div className="label">Bobot %OK final</div>
-              <div className="inputs">
-                <input type="range" min={0} max={100} value={wOkFinal} onChange={(e) => normalizeWeights({ wOkFinal: Number(e.target.value) })} />
-                <input type="number" min={0} max={100} value={wOkFinal} onChange={(e) => normalizeWeights({ wOkFinal: Number(e.target.value) })} style={{ width: 64 }} />
-              </div>
-            </div>
-            <div className="weight-control">
-              <div className="label">%Compound</div>
-              <div className="inputs">
-                <input type="range" min={0} max={100} value={wComp} onChange={(e) => normalizeWeights({ wComp: Number(e.target.value) })} />
-                <input type="number" min={0} max={100} value={wComp} onChange={(e) => normalizeWeights({ wComp: Number(e.target.value) })} style={{ width: 64 }} />
-              </div>
-            </div>
-            <div className="weight-control">
-              <div className="label">Bobot %OK awal</div>
-              <div className="inputs">
-                <input type="range" min={0} max={100} value={wOkAwal} onChange={(e) => normalizeWeights({ wOkAwal: Number(e.target.value) })} />
-                <input type="number" min={0} max={100} value={wOkAwal} onChange={(e) => normalizeWeights({ wOkAwal: Number(e.target.value) })} style={{ width: 64 }} />
-              </div>
-            </div>
-            <div className="weight-control">
-              <div className="label">Bobot Total part</div>
-              <div className="inputs">
-                <input type="range" min={0} max={100} value={wPart} onChange={(e) => normalizeWeights({ wPart: Number(e.target.value) })} />
-                <input type="number" min={0} max={100} value={wPart} onChange={(e) => normalizeWeights({ wPart: Number(e.target.value) })} style={{ width: 64 }} />
-              </div>
-            </div>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-              <button
-                className="btn-ghost"
-                onClick={() => normalizeWeights({ wOkFinal: 50, wComp: 20, wOkAwal: 20, wPart: 10 })}
-                title="Reset bobot ke default"
-              >
-                Reset
-              </button>
-              <div style={{ fontSize: 13, color: "var(--ink-secondary)" }}>
-                <small>Jumlah: {wOkFinal + wComp + wOkAwal + wPart}%</small>
-              </div>
-            </div>
-          </div>
-          {leaderRanking.length === 0 ? (
-            <p className="empty-note">Tidak ada data leader.</p>
-          ) : (
-            <ol className="ranking-list">
-              {leaderRanking.slice(0, rankingLimit).map((l, idx) => (
-                <li key={l.name}>
-                  <div className="ranking-name"><span className="rank-no">{idx + 1}</span>{l.name}</div>
-                  <div className="ranking-metric">
-                    {rankingMetric === "avg_ok_final" ? (
-                      <><strong style={{ marginRight: 8 }}>{l.avg_ok_final}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
-                    ) : rankingMetric === "avg_comp" ? (
-                      <><strong style={{ marginRight: 8 }}>{l.avg_comp}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
-                    ) : rankingMetric === "avg_ok_awal" ? (
-                      <><strong style={{ marginRight: 8 }}>{l.avg_ok_awal}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
-                    ) : rankingMetric === "overall" ? (
-                      <><strong style={{ marginRight: 8 }}>{l.overall_score}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>score — {l.total_part.toLocaleString("id-ID")} part</span></>
-                    ) : rankingMetric === "total_hanger" ? (
-                      <><strong style={{ marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
-                    ) : rankingMetric === "total_part" ? (
-                      <><strong style={{ marginRight: 8 }}>{l.total_part.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_hanger.toLocaleString("id-ID")} hanger</span></>
-                    ) : (
-                      <><strong style={{ marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="card-head">
-            <p className="card-title">Perolehan hanger per shift</p>
-            <div className="card-actions">
-              <button className="btn-ghost" onClick={exportShiftHangerExcel}>Export Excel</button>
-              <button className="btn-ghost" onClick={exportShiftHangerPDF}>Export PDF</button>
-            </div>
-          </div>
-          {shiftHangerList.length === 0 ? (
-            <p className="empty-note">Tidak ada data.</p>
-          ) : (
-            <div className="pie3d-wrap">
-              <Pie3D data={shiftHangerList.map((s, i) => ({ name: s.shift, value: s.total, color: SHIFT_COLORS[i % SHIFT_COLORS.length] }))} />
-              <div className="pie-legend">
-                {shiftHangerList.map((s, i) => (
-                  <div key={s.shift} className="pie-row">
-                    <span className="pie-dot" style={{ background: SHIFT_COLORS[i % SHIFT_COLORS.length] }} />
-                    <span className="pie-name">{s.shift}</span>
-                    <strong>{s.total.toLocaleString("id-ID")}</strong>
-                    <span className="pie-pct">{shiftHangerTotal ? Math.round((s.total / shiftHangerTotal) * 1000) / 10 : 0}%</span>
-                  </div>
-                ))}
-                <div className="pie-row pie-total"><span className="pie-name">Total hanger</span><strong>{shiftHangerTotal.toLocaleString("id-ID")}</strong></div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="metrics-grid">
         <div className="metric metric-success-soft">
           <p className="metric-label">Rata-rata %OK awal</p>
@@ -610,6 +480,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="chart-grid">
       <div className="card dashboard-chart-card" ref={chartRef}>
         <div className="card-head">
           <div>
@@ -622,7 +493,7 @@ export default function Dashboard() {
         ) : data.length === 0 ? (
           <p className="empty-note">Belum ada data produksi untuk filter ini.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={320}>
+          <div className="chart-box"><ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#e9ecf4" vertical={false} />
               <XAxis
@@ -654,13 +525,52 @@ export default function Dashboard() {
               <Line type="monotone" dataKey="persen_ng_awal" name="%NG awal" stroke="#ee9aa8" strokeWidth={1.75} dot={false} activeDot={{ r: 4 }} />
               <Line type="monotone" dataKey="persen_ng_final" name="%NG final" stroke="#bf3049" strokeWidth={2.75} dot={{ r: 2.5 }} activeDot={{ r: 5 }} />
             </LineChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer></div>
         )}
       </div>
 
-      <PerformaCharts rows={rows} loading={loadingRows} dailyRef={dailyChartRef} monthlyRef={monthlyChartRef} pieRef={pieChartRef} />
+      <PerformaCharts rows={rows} loading={loadingRows} dailyRef={dailyChartRef} monthlyRef={monthlyChartRef} monthlyHangerRef={monthlyHangerRef} pieRef={pieChartRef}>
+        <div className="card" ref={shiftChartRef}>
+              <div className="card-head">
+                <p className="card-title">Perolehan hanger per shift</p>
+                <div className="card-actions" data-html2canvas-ignore="true">
+                  <button className="btn-ghost" onClick={exportShiftHangerExcel}>Export Excel</button>
+                  <button className="btn-ghost" onClick={exportShiftHangerPDF}>Export PDF</button>
+                </div>
+              </div>
+              {shiftHangerList.length === 0 ? (
+                <p className="empty-note">Tidak ada data.</p>
+              ) : (
+                <div className="pie3d-wrap">
+                  <Pie3D data={shiftHangerList.map((s, i) => ({ name: s.shift, value: s.total, color: SHIFT_COLORS[i % SHIFT_COLORS.length] }))} />
+                  <div className="pie-legend">
+                    {shiftHangerList.map((s, i) => (
+                      <div key={s.shift} className="pie-row">
+                        <span className="pie-dot" style={{ background: SHIFT_COLORS[i % SHIFT_COLORS.length] }} />
+                        <span className="pie-name">{s.shift}</span>
+                        <strong>{s.total.toLocaleString("id-ID")}</strong>
+                        <span className="pie-pct">{shiftHangerTotal ? Math.round((s.total / shiftHangerTotal) * 1000) / 10 : 0}%</span>
+                      </div>
+                    ))}
+                    <div className="pie-row pie-total"><span className="pie-name">Total hanger</span><strong>{shiftHangerTotal.toLocaleString("id-ID")}</strong></div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-      <div className="card section">
+      </PerformaCharts>
+      </div>
+
+      <div className="tabs-card">
+        <div className="tabs-bar" role="tablist">
+          {[["detail", "Detail data"], ["ranking", "Ranking leader"], ["ng", "Matrix NG"], ["hanger", "Matrix hanger"]].map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={tab === k} className={"tab-btn" + (tab === k ? " is-active" : "")} onClick={() => setTab(k)}>{label}</button>
+          ))}
+        </div>
+        <div className="tab-panel">
+          {tab === "detail" && (
+
+      <div className="card">
         <div className="dashboard-detail-header">
           <p className="card-title">Detail data</p>
           <div className="dashboard-detail-actions">
@@ -699,7 +609,7 @@ export default function Dashboard() {
                 setExportingPDF(true);
                 setPdfNote("");
                 try {
-                  const chartImage = await captureCharts([chartRef.current, dailyChartRef.current, pieChartRef.current, monthlyChartRef.current]);
+                  const chartImage = await captureCharts([chartRef.current, dailyChartRef.current, pieChartRef.current, shiftChartRef.current, monthlyChartRef.current, monthlyHangerRef.current]);
                   const prepared = rows.map((r) => {
                     const part = Number(r.total_part) || 0;
                     const okAwal = Number(r.ok_awal) || 0;
@@ -821,21 +731,131 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      <div className="card section">
+          )}
+          {tab === "ranking" && (
+      <div className="stack">
+        <div className="card">
+          <div className="ranking-header">
+            <p className="ranking-title">Ranking leader</p>
+            <div className="controls">
+              <label>Urutkan:</label>
+              <select value={rankingMetric} onChange={(e) => setRankingMetric(e.target.value)}>
+                <option value="avg_ok_final">%OK final (rata-rata)</option>
+                <option value="avg_comp">%Compound (rata-rata)</option>
+                <option value="avg_ok_awal">%OK awal (rata-rata)</option>
+                <option value="overall">Bobot keseluruhan</option>
+                <option value="total_part">Total part</option>
+                <option value="total_hanger">Total hanger</option>
+              </select>
+              <label>Line</label>
+              <select value={rankingLineFilter} onChange={(e) => setRankingLineFilter(e.target.value)}>
+                <option value="">Semua</option>
+                {lines.map((ln) => <option key={ln.id} value={ln.id}>{ln.nama_line}</option>)}
+              </select>
+              <label>Tampilkan</label>
+              <select value={rankingLimit} onChange={(e) => setRankingLimit(Number(e.target.value))}>
+                <option value={5}>5</option>
+                <option value={8}>8</option>
+                <option value={12}>12</option>
+              </select>
+              <div className="ranking-actions">
+                <button className="btn-ghost" onClick={exportLeaderRankingExcel}>Export Excel</button>
+                <button className="btn-ghost" onClick={exportLeaderRankingPDF}>Export PDF</button>
+              </div>
+            </div>
+          </div>
+          <div className="ranking-controls">
+            <div className="weight-control">
+              <div className="label">Bobot %OK final</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wOkFinal} onChange={(e) => normalizeWeights({ wOkFinal: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wOkFinal} onChange={(e) => normalizeWeights({ wOkFinal: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div className="weight-control">
+              <div className="label">%Compound</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wComp} onChange={(e) => normalizeWeights({ wComp: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wComp} onChange={(e) => normalizeWeights({ wComp: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div className="weight-control">
+              <div className="label">Bobot %OK awal</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wOkAwal} onChange={(e) => normalizeWeights({ wOkAwal: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wOkAwal} onChange={(e) => normalizeWeights({ wOkAwal: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div className="weight-control">
+              <div className="label">Bobot Total part</div>
+              <div className="inputs">
+                <input type="range" min={0} max={100} value={wPart} onChange={(e) => normalizeWeights({ wPart: Number(e.target.value) })} />
+                <input type="number" min={0} max={100} value={wPart} onChange={(e) => normalizeWeights({ wPart: Number(e.target.value) })} style={{ width: 64 }} />
+              </div>
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                className="btn-ghost"
+                onClick={() => normalizeWeights({ wOkFinal: 50, wComp: 20, wOkAwal: 20, wPart: 10 })}
+                title="Reset bobot ke default"
+              >
+                Reset
+              </button>
+              <div style={{ fontSize: 13, color: "var(--ink-secondary)" }}>
+                <small>Jumlah: {wOkFinal + wComp + wOkAwal + wPart}%</small>
+              </div>
+            </div>
+          </div>
+          {leaderRanking.length === 0 ? (
+            <p className="empty-note">Tidak ada data leader.</p>
+          ) : (
+            <ol className="ranking-list">
+              {leaderRanking.slice(0, rankingLimit).map((l, idx) => (
+                <li key={l.name}>
+                  <div className="ranking-name"><span className="rank-no">{idx + 1}</span>{l.name}</div>
+                  <div className="ranking-metric">
+                    {rankingMetric === "avg_ok_final" ? (
+                      <><strong style={{ marginRight: 8 }}>{l.avg_ok_final}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "avg_comp" ? (
+                      <><strong style={{ marginRight: 8 }}>{l.avg_comp}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "avg_ok_awal" ? (
+                      <><strong style={{ marginRight: 8 }}>{l.avg_ok_awal}%</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "overall" ? (
+                      <><strong style={{ marginRight: 8 }}>{l.overall_score}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>score — {l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "total_hanger" ? (
+                      <><strong style={{ marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    ) : rankingMetric === "total_part" ? (
+                      <><strong style={{ marginRight: 8 }}>{l.total_part.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_hanger.toLocaleString("id-ID")} hanger</span></>
+                    ) : (
+                      <><strong style={{ marginRight: 8 }}>{l.total_hanger.toLocaleString("id-ID")}</strong><span style={{ fontSize: 12, color: "var(--ink-muted)" }}>{l.total_part.toLocaleString("id-ID")} part</span></>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+          )}
+          {tab === "ng" && (
+      <div className="card">
         <div className="card-head">
           <p className="card-title">Matrix NG</p>
           <span className="card-note">Total NG sesuai filter: {totalNgFiltered.toLocaleString("id-ID")}</span>
         </div>
         <MatrixTable matrix={ngMatrix} shiftNames={shiftNames} empty="Tidak ada data NG." />
       </div>
-
-      <div className="card section">
+          )}
+          {tab === "hanger" && (
+      <div className="card">
         <div className="card-head">
           <p className="card-title">Matrix hanger</p>
           <span className="card-note">Total hanger sesuai filter: {totalHangerFiltered.toLocaleString("id-ID")}</span>
         </div>
         <MatrixTable matrix={hangerMatrix} shiftNames={shiftNames} empty="Tidak ada data hanger." />
+      </div>
+          )}
+        </div>
       </div>
     </div>
   );
