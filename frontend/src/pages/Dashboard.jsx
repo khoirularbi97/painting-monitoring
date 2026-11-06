@@ -6,6 +6,7 @@ import {
 import { api } from "../lib/api.js";
 import { exportToExcel, exportToPDF, captureCharts } from "../lib/export.js";
 import { CHECK_COLUMNS, buildChartSheets, readTarget, withCheckValues } from "../lib/performa.js";
+import Pie3D from "../components/Pie3D.jsx";
 import PerformaCharts from "../components/PerformaCharts.jsx";
 import PaginatedTable from "../components/PaginatedTable.jsx";
 import Tanggal from "../components/Tanggal.jsx";
@@ -85,6 +86,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [loadingRows, setLoadingRows] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
+  const [pdfNote, setPdfNote] = useState("");
   const chartRef = useRef(null);
   const dailyChartRef = useRef(null);
   const monthlyChartRef = useRef(null);
@@ -269,6 +271,8 @@ export default function Dashboard() {
     shiftHanger[shift] += Number(r.total_hanger) || 0;
   });
   const shiftHangerList = Object.entries(shiftHanger).map(([shift, total]) => ({ shift, total }));
+  const shiftHangerTotal = shiftHangerList.reduce((s, x) => s + x.total, 0);
+  const SHIFT_COLORS = ["#3347c9", "#e3a82b", "#12804a", "#bf3049", "#7a3fc4"];
 
   // Export helpers for ranking and shift hanger
   function exportLeaderRankingExcel() {
@@ -561,16 +565,19 @@ export default function Dashboard() {
           {shiftHangerList.length === 0 ? (
             <p className="empty-note">Tidak ada data.</p>
           ) : (
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer>
-                <BarChart data={shiftHangerList} layout="vertical" margin={{ top: 6, right: 6, left: 6, bottom: 6 }}>
-                  <CartesianGrid stroke="#e9ecf4" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                  <YAxis type="category" dataKey="shift" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={80} />
-                  <Tooltip cursor={{ fill: "#f2f4f9" }} formatter={(v) => v.toLocaleString("id-ID")} contentStyle={TOOLTIP_STYLE} />
-                  <Bar dataKey="total" name="Total hanger" fill="#3347c9" radius={[0, 6, 6, 0]} barSize={22} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="pie3d-wrap">
+              <Pie3D data={shiftHangerList.map((s, i) => ({ name: s.shift, value: s.total, color: SHIFT_COLORS[i % SHIFT_COLORS.length] }))} />
+              <div className="pie-legend">
+                {shiftHangerList.map((s, i) => (
+                  <div key={s.shift} className="pie-row">
+                    <span className="pie-dot" style={{ background: SHIFT_COLORS[i % SHIFT_COLORS.length] }} />
+                    <span className="pie-name">{s.shift}</span>
+                    <strong>{s.total.toLocaleString("id-ID")}</strong>
+                    <span className="pie-pct">{shiftHangerTotal ? Math.round((s.total / shiftHangerTotal) * 1000) / 10 : 0}%</span>
+                  </div>
+                ))}
+                <div className="pie-row pie-total"><span className="pie-name">Total hanger</span><strong>{shiftHangerTotal.toLocaleString("id-ID")}</strong></div>
+              </div>
             </div>
           )}
         </div>
@@ -690,6 +697,7 @@ export default function Dashboard() {
               disabled={rows.length === 0 || exportingPDF}
               onClick={async () => {
                 setExportingPDF(true);
+                setPdfNote("");
                 try {
                   const chartImage = await captureCharts([chartRef.current, dailyChartRef.current, pieChartRef.current, monthlyChartRef.current]);
                   const prepared = rows.map((r) => {
@@ -709,7 +717,11 @@ export default function Dashboard() {
                     { label: "Rata-rata %NG final", value: `${avgNgFinal}%` },
                     { label: "Total part diproses", value: totalPart.toLocaleString("id-ID") },
                   ];
-                  exportToPDF(prepared, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting", chartImage, summary);
+                  await exportToPDF(prepared, EXPORT_COLUMNS, "dashboard-painting", "Dashboard Performa Painting", chartImage, summary);
+                  if (chartImage.failed) setPdfNote(`${chartImage.failed} chart gagal dimasukkan ke PDF. Tabel dan ringkasan tetap lengkap.`);
+                } catch (err) {
+                  console.error("Export PDF gagal:", err);
+                  setPdfNote(`Export PDF gagal: ${err?.message || "kesalahan tidak dikenal"}`);
                 } finally {
                   setExportingPDF(false);
                 }
@@ -717,6 +729,7 @@ export default function Dashboard() {
             >
               {exportingPDF ? "Menyiapkan..." : "Export PDF"}
             </button>
+            {pdfNote && <span className="pdf-note" role="status">{pdfNote}</span>}
           </div>
         </div>
         {loadingRows ? (

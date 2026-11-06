@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar.jsx";
 import ServerBanner from "./components/ServerBanner.jsx";
+import FileReadyBar from "./components/FileReadyBar.jsx";
 import NotificationBell from "./components/NotificationBell.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import InputProduksi from "./pages/InputProduksi.jsx";
@@ -23,6 +24,7 @@ function Gate() {
   return (
     <HashRouter>
       <ServerBanner />
+      <FileReadyBar />
       <div className="app-shell">
         <Sidebar />
         <div className="main-col">

@@ -4,6 +4,60 @@ import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import { formatTanggal, isTanggal } from "./format.js";
 
+export const FILE_READY = "export:file-ready";
+
+const MIME = {
+  pdf: "application/pdf",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// Aplikasi PWA di HP (terutama iOS) mengabaikan unduhan lewat <a download>. Di layar sentuh,
+// file diberikan lewat lembar "Bagikan" bawaan perangkat (Simpan ke Berkas, WhatsApp, dll).
+// Lembar itu hanya mau terbuka dari ketukan langsung; export PDF butuh beberapa detik, jadi
+// ketukan itu bisa sudah kedaluwarsa. Bila ditolak, file ditahan dan pengguna diminta mengetuk
+// tombol "Simpan" (lihat FileReadyBar).
+export async function saveFile(blob, filename) {
+  const type = MIME[filename.split(".").pop()] || blob.type;
+  const file = new File([blob], filename, { type });
+  const touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+  if (touch && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    } catch (err) {
+      if (err?.name === "AbortError") return; // pengguna menutup lembar Bagikan
+      window.dispatchEvent(new CustomEvent(FILE_READY, { detail: { file } }));
+      return;
+    }
+  }
+  downloadBlob(blob, filename);
+}
+
+// Dipanggil dari tombol "Simpan" (ketukan baru, jadi lembar Bagikan boleh terbuka).
+export async function shareOrDownload(file) {
+  try {
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: file.name });
+      return true;
+    }
+  } catch (err) {
+    if (err?.name === "AbortError") return false;
+  }
+  downloadBlob(file, file.name);
+  return true;
+}
+
 // Kolom berawalan "tanggal" diekspor dengan nama hari: "Senin, 02 Nov 2026".
 function cellValue(row, col) {
   const v = row[col.key];
@@ -26,10 +80,22 @@ export async function captureChartImage(element) {
 // Hasil: [{ data, width, height }] dalam piksel, dipakai exportToPDF agar rasio gambar tetap.
 export async function captureCharts(elements) {
   const out = [];
+  out.failed = 0;
   for (const el of elements) {
     if (!el) continue;
-    const canvas = await html2canvas(el, { backgroundColor: "#ffffff", scale: 2 });
-    out.push({ data: canvas.toDataURL("image/png"), width: canvas.width, height: canvas.height });
+    // Satu chart gagal tidak boleh menggagalkan seluruh PDF: coba lagi dengan resolusi lebih
+    // rendah (layar kecil/memori terbatas), dan bila tetap gagal lewati chart itu.
+    let shot = null;
+    for (const scale of [2, 1]) {
+      try {
+        const canvas = await html2canvas(el, { backgroundColor: "#ffffff", scale, logging: false });
+        shot = { data: canvas.toDataURL("image/jpeg", 0.9), width: canvas.width, height: canvas.height };
+        break;
+      } catch (err) {
+        console.error("Gagal menangkap chart untuk PDF (scale " + scale + "):", err);
+      }
+    }
+    if (shot) out.push(shot); else out.failed += 1;
   }
   return out;
 }
@@ -63,7 +129,8 @@ export function exportToExcel(rows, columns, filename, summary, extraSheets) {
     const ws = XLSX.utils.json_to_sheet(sheetRows.length ? sheetRows : [{}], { header: sh.columns.map((c) => c.label) });
     XLSX.utils.book_append_sheet(workbook, ws, sh.name);
   });
-  XLSX.writeFile(workbook, `${filename}.xlsx`);
+  const bytes = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+  return saveFile(new Blob([bytes], { type: MIME.xlsx }), `${filename}.xlsx`);
 }
 
 export function exportToPDF(rows, columns, filename, title, chartImage, summary) {
@@ -101,7 +168,7 @@ export function exportToPDF(rows, columns, filename, title, chartImage, summary)
       doc.addPage();
       startY = 14;
     }
-    doc.addImage(img.data, "PNG", 14, startY, w, h);
+    doc.addImage(img.data, "JPEG", 14, startY, w, h);
     startY += h + 8;
   });
 
@@ -114,5 +181,5 @@ export function exportToPDF(rows, columns, filename, title, chartImage, summary)
     alternateRowStyles: { fillColor: [247, 248, 252] },
   });
 
-  doc.save(`${filename}.pdf`);
+  return saveFile(doc.output("blob"), `${filename}.pdf`);
 }
