@@ -19,12 +19,8 @@ export function pctOkFinal(r) {
   return num(r.total_part) ? (num(r.total_ok_final) / num(r.total_part)) * 100 : 0;
 }
 
-// Compound final = compound yang belum selesai di-repair (compound awal dikurangi yang sudah diproses repair).
-export function compFinal(r) {
-  return Math.max(0, num(r.total_comp) - num(r.ok_dari_repair) - num(r.ng_dari_repair));
-}
-
-export const pctCompFinal = (r) => (num(r.total_part) ? (compFinal(r) / num(r.total_part)) * 100 : 0);
+// %Compound awal = compound pada produksi (sebelum repair) dibagi total part.
+export const pctCompAwal = (r) => (num(r.total_part) ? (num(r.total_comp) / num(r.total_part)) * 100 : 0);
 
 // OEE = Availability (diasumsikan 100%) x Performance x Quality. Baris tanpa hanger: null (dilewati).
 export function oeeRow(r, target) {
@@ -73,7 +69,7 @@ export function computeMonthly(rows, target) {
       bulan: monthLabel(key),
       jumlah_baris: list.length,
       ok_final: r1(mean(list.map(pctOkFinal))),
-      comp_final: r1(mean(list.map(pctCompFinal))),
+      comp_awal: r1(mean(list.map(pctCompAwal))),
       oee: r1(mean(oees)),
       total_hanger: list.reduce((s, r) => s + num(r.total_hanger), 0),
       eff_hanger: r1(mean(list.map((r) => r.efisiensi_hanger).filter((v) => v != null).map(Number))),
@@ -102,7 +98,7 @@ export function buildChartSheets(rows, target) {
         { key: "key", label: "Bulan" },
         { key: "jumlah_baris", label: "Jumlah Baris" },
         { key: "ok_final", label: "%OK Final" },
-        { key: "comp_final", label: "%Compound Final" },
+        { key: "comp_awal", label: "%Compound Awal" },
         { key: "oee", label: `OEE (target ${target} part/hanger)` },
         { key: "total_hanger", label: "Total Hanger" },
         { key: "eff_hanger", label: "Rata-rata Efektif Hanger" },
@@ -118,8 +114,6 @@ export const CHECK_COLUMNS = [
   { key: "total_hanger", label: "Total Hanger" },
   { key: "ok_dari_repair", label: "OK dari Repair" },
   { key: "ng_dari_repair", label: "NG dari Repair" },
-  { key: "comp_final_qty", label: "Compound Final (sisa)" },
-  { key: "persen_comp_final", label: "%Compound Final" },
   { key: "oee_row", label: "OEE Baris (%)" },
 ];
 
@@ -128,8 +122,6 @@ export function withCheckValues(r, target) {
   return {
     ...r,
     bulan: String(r.tanggal).slice(0, 7),
-    comp_final_qty: compFinal(r),
-    persen_comp_final: r1(pctCompFinal(r)),
     oee_row: oee == null ? "" : r1(oee),
   };
 }

@@ -114,8 +114,8 @@ export default function PerformaCharts({ rows, loading, dailyRef, monthlyRef, mo
                 <Bar dataKey="ok_final" name="%OK final" fill="#12804a" radius={[4, 4, 0, 0]} maxBarSize={36}>
                   <LabelList dataKey="ok_final" position="top" formatter={(v) => `${v}%`} style={LABEL} />
                 </Bar>
-                <Bar dataKey="comp_final" name="%Compound final" fill="#e3a82b" radius={[4, 4, 0, 0]} maxBarSize={36}>
-                  <LabelList dataKey="comp_final" position="top" formatter={(v) => `${v}%`} style={LABEL} />
+                <Bar dataKey="comp_awal" name="%Compound awal" fill="#e3a82b" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                  <LabelList dataKey="comp_awal" position="top" formatter={(v) => `${v}%`} style={LABEL} />
                 </Bar>
                 <Bar dataKey="oee" name="OEE" fill="#7a3fc4" radius={[4, 4, 0, 0]} maxBarSize={36}>
                   <LabelList dataKey="oee" position="top" formatter={(v) => `${v}%`} style={LABEL} />
