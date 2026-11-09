@@ -26,10 +26,15 @@ router.get("/tren-ok", async (req, res) => {
       SUM(p.total_ok) AS total_ok_awal,
       SUM(p.total_comp) AS total_comp,
       SUM(p.total_ng) AS total_ng_awal,
-      COALESCE(SUM(r.total_hasil_ok), 0) AS ok_dari_repair,
-      COALESCE(SUM(r.total_hasil_ng), 0) AS ng_dari_repair
+      COALESCE(SUM(r.ok_r), 0) AS ok_dari_repair,
+      COALESCE(SUM(r.ng_r), 0) AS ng_dari_repair
     FROM produksi_painting p
-    LEFT JOIN hasil_repair r ON r.produksi_id = p.id
+    -- repair diringkas per produksi dulu: join langsung ke hasil_repair (banyak baris per produksi)
+    -- membuat total_part/ok/comp/ng terhitung berulang
+    LEFT JOIN (
+      SELECT produksi_id, SUM(total_hasil_ok) AS ok_r, SUM(total_hasil_ng) AS ng_r
+      FROM hasil_repair GROUP BY produksi_id
+    ) r ON r.produksi_id = p.id
     ${where}
     GROUP BY p.tanggal
     ORDER BY p.tanggal
